@@ -1,0 +1,46 @@
+# tenants/ route tests
+
+@baseUrl = http://localhost:3000/api
+
+### Create Tenant
+POST {{baseUrl}}/tenants
+Content-Type: application/json
+
+{
+  "tenant": {
+    "id": "frost"
+  },
+  "organization": {
+    "name": "Frost Tech",
+    "description": "Leading the future of technology.",
+    "logoUrl": ""
+  },
+  "onboardingRequest": {
+    "description": "Requesting access to Frost Tech tenant."
+  },
+  "user": {
+    "name": "Front Megersa",
+    "email": "front.megersa@example.com",
+    "password": "Password123!"
+  }
+}
+
+
+# Expected: 200/201 with created tenant payload
+
+### Approve Tenant
+PATCH {{baseUrl}}/tenants/frost/approve
+Content-Type: application/json
+
+{
+  "approvedBy": "77bce847-e09d-43c5-9867-f2ec8dc49a1b"
+}
+
+### Soft Delete Tenant
+DELETE {{baseUrl}}/tenants/frost
+
+### Recover Tenant
+POST {{baseUrl}}/tenants/frost/recover
+
+### Hard Delete Tenant
+DELETE {{baseUrl}}/tenants/frost/hard-delete

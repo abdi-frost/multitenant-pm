@@ -1,0 +1,329 @@
+### ============================================================================
+### MULTI-TENANT PM SAAS - CORE API TESTS
+### Complete Testing Guide & Common Scenarios
+### ============================================================================
+
+@baseUrl = http://localhost:3000
+
+### ============================================================================
+### SETUP INSTRUCTIONS
+### ============================================================================
+
+# 1. Install REST Client extension in VS Code
+#    - Extension ID: humao.rest-client
+#    - Or search "REST Client" in VS Code extensions
+
+# 2. Start the development server
+#    $ cd c:/Users/HP/Desktop/projects/fullstack/multi-tenant-pm-saas
+#    $ pnpm dev
+
+# 3. Run database migrations
+#    $ pnpm migrate:generate
+#    $ pnpm migrate:up
+
+# 4. Seed admin user
+#    $ pnpm seed:admin
+
+# 5. Open any .http file in VS Code
+#    - Click "Send Request" above each ### section
+#    - View response in the panel that opens
+
+### ============================================================================
+### TESTING WORKFLOW - COMPLETE END-TO-END
+### ============================================================================
+
+# PHASE 1: ADMIN SETUP
+# =====================
+# File: tests/auth.http
+# 1. Sign in as admin (use credentials from seed script)
+# 2. Copy session token from response cookies
+# 3. Update @adminSessionToken in tenants.http
+
+# PHASE 2: TENANT REGISTRATION & APPROVAL
+# ========================================
+# File: tests/auth.http
+# 1. Sign up new tenant with email/password
+# 2. Copy tenant email and password
+# 3. Sign in as tenant
+# 4. Copy tenant session token
+# 
+# File: tests/tenants.http
+# 5. Sign in as admin
+# 6. Get all tenants (find your new tenant with status=PENDING)
+# 7. Copy tenant ID
+# 8. Approve tenant with desired subscription tier
+# 9. Verify tenant status changed to APPROVED
+
+# PHASE 3: EMPLOYEE INVITATION & ONBOARDING
+# ==========================================
+# File: tests/invitations.http
+# 1. Sign in as tenant owner (from Phase 2)
+# 2. Create invitation for employee
+# 3. Copy invitation token from response
+# 4. Accept invitation (new user signup or existing OAuth)
+# 5. Verify invitation status changed to ACCEPTED
+# 6. Employee can now access PM app
+
+# PHASE 4: TENANT MANAGEMENT
+# ===========================
+# File: tests/tenants.http
+# 1. List all tenants with filters
+# 2. Search tenants by name/email
+# 3. View tenant details
+# 4. Test soft delete and recovery
+# 5. View invitation statistics
+
+### ============================================================================
+### QUICK TEST SCENARIOS
+### ============================================================================
+
+### Scenario 1: New Tenant Signup Flow (5 minutes)
+# 1. POST /api/auth/sign-up/email (create tenant account)
+# 2. POST /api/auth/sign-in/email (login as tenant)
+# 3. GET /api/auth/session (verify session)
+# Expected: Tenant created with status=PENDING
+
+### Scenario 2: Admin Approval Flow (3 minutes)
+# 1. POST /api/auth/sign-in/email (login as admin)
+# 2. GET /api/tenants?status=PENDING (find pending tenant)
+# 3. POST /api/tenants/{id}/approve (approve with tier)
+# Expected: Tenant status=APPROVED, can use full features
+
+### Scenario 3: Employee Invitation Flow (7 minutes)
+# 1. POST /api/auth/sign-in/email (login as tenant)
+# 2. POST /api/invitations (create invitation)
+# 3. GET /api/invitations (verify invitation created)
+# 4. POST /api/invitations/{token}/accept (accept as employee)
+# Expected: Employee linked to tenant, can login
+
+### Scenario 4: Social Auth Login (3 minutes)
+# 1. GET /api/auth/sign-in/social/google (redirect to Google)
+# 2. Complete OAuth flow in browser
+# 3. GET /api/auth/session (verify session)
+# Expected: User created with OAuth account
+
+### Scenario 5: Tenant Rejection Flow (3 minutes)
+# 1. POST /api/auth/sign-in/email (login as admin)
+# 2. GET /api/tenants?status=PENDING (find pending tenant)
+# 3. POST /api/tenants/{id}/reject (reject with reason)
+# Expected: Tenant status=REJECTED, notified with reason
+
+### ============================================================================
+### ENVIRONMENT VARIABLES REQUIRED
+### ============================================================================
+
+# Database:
+# DATABASE_URL=postgres://postgres:password@localhost:5433/multitenant-pm
+
+# Better Auth:
+# BETTER_AUTH_SECRET=your-secret-key
+# BETTER_AUTH_URL=http://localhost:3000
+
+# OAuth (Optional - for social auth testing):
+# GOOGLE_CLIENT_ID=your-google-client-id
+# GOOGLE_CLIENT_SECRET=your-google-client-secret
+# GITHUB_CLIENT_ID=your-github-client-id
+# GITHUB_CLIENT_SECRET=your-github-client-secret
+
+# Admin Credentials (for seed script):
+# ADMIN_EMAIL=admin@example.com
+# ADMIN_PASSWORD=Admin123!
+# ADMIN_NAME=System Admin
+
+# Multi-App URLs:
+# CORE_API_URL=http://localhost:3000
+# PM_APP_URL=http://localhost:3001
+# ADMIN_APP_URL=http://localhost:3002
+
+### ============================================================================
+### COMMON ERROR RESPONSES
+### ============================================================================
+
+# 400 Bad Request
+# - Invalid request body
+# - Missing required fields
+# - Validation errors
+
+# 401 Unauthorized
+# - Missing or invalid session token
+# - Session expired
+# - Not logged in
+
+# 403 Forbidden
+# - Insufficient permissions
+# - Admin endpoint accessed by non-admin
+# - Tenant endpoint accessed by employee
+
+# 404 Not Found
+# - Resource doesn't exist
+# - Invalid ID
+# - Deleted resource
+
+# 409 Conflict
+# - Email already exists
+# - Invitation already sent
+# - Tenant already approved
+
+# 500 Internal Server Error
+# - Database connection error
+# - Unexpected server error
+# - Check server logs for details
+
+### ============================================================================
+### DEBUGGING TIPS
+### ============================================================================
+
+# Problem: Session token not working
+# Solution: 
+# - Ensure token is copied correctly (no extra spaces)
+# - Check token format: better-auth.session_token=xxx
+# - Token might be expired (2 days default)
+# - Sign in again to get fresh token
+
+# Problem: 403 Forbidden on admin endpoints
+# Solution:
+# - Verify you're using admin session token
+# - Check user has userType=ADMIN
+# - Run GET /api/auth/session to verify user details
+
+# Problem: Invitation acceptance fails
+# Solution:
+# - Check invitation token is not expired (7 days)
+# - Verify invitation status is PENDING
+# - Ensure email doesn't already exist in system
+# - Check tenant is APPROVED
+
+# Problem: OAuth redirect not working
+# Solution:
+# - Verify OAuth credentials in .env
+# - Check redirect URL matches OAuth app settings
+# - Google: http://localhost:3000/api/auth/callback/google
+# - GitHub: http://localhost:3000/api/auth/callback/github
+
+### ============================================================================
+### RESPONSE DATA EXAMPLES
+### ============================================================================
+
+# Successful Sign In Response:
+# {
+#   "user": {
+#     "id": "user_xxx",
+#     "email": "user@example.com",
+#     "name": "User Name",
+#     "userType": "TENANT",
+#     "tenantId": "tenant_xxx"
+#   },
+#   "session": {
+#     "token": "session_xxx",
+#     "expiresAt": "2025-12-07T00:00:00.000Z"
+#   }
+# }
+
+# Session Token in Response Headers:
+# Set-Cookie: better-auth.session_token=xxx; Path=/; HttpOnly; SameSite=Lax
+
+# Tenant List Response:
+# {
+#   "success": true,
+#   "data": [
+#     {
+#       "id": "tenant_xxx",
+#       "email": "tenant@example.com",
+#       "status": "PENDING",
+#       "createdAt": "2025-12-05T10:00:00.000Z"
+#     }
+#   ],
+#   "pagination": {
+#     "page": 1,
+#     "limit": 10,
+#     "total": 1
+#   }
+# }
+
+### ============================================================================
+### PERFORMANCE TESTING
+### ============================================================================
+
+# Load Testing Scenarios:
+# 1. Create 100 tenants simultaneously
+# 2. Send 1000 invitation requests
+# 3. Approve 50 tenants at once
+# 4. List tenants with heavy pagination
+
+# Tools for Load Testing:
+# - Apache Bench (ab): ab -n 1000 -c 10 http://localhost:3000/api/tenants
+# - k6: k6 run loadtest.js
+# - Artillery: artillery run loadtest.yml
+
+### ============================================================================
+### SECURITY TESTING CHECKLIST
+### ============================================================================
+
+# [ ] SQL Injection: Try malicious input in search fields
+# [ ] XSS: Try script tags in name/email fields
+# [ ] CSRF: Verify CSRF protection on state-changing requests
+# [ ] Rate Limiting: Test rapid-fire requests (should be rate limited)
+# [ ] Authorization: Try accessing admin endpoints as tenant
+# [ ] Session Hijacking: Test with expired/invalid tokens
+# [ ] Data Leakage: Verify tenants can't see other tenants' data
+# [ ] Password Strength: Test weak passwords (should be rejected)
+
+### ============================================================================
+### NEXT STEPS AFTER CORE API TESTING
+### ============================================================================
+
+# 1. Build Admin Panel (localhost:3002)
+#    - Login page for admins
+#    - Tenant approval dashboard
+#    - Statistics and analytics
+#    - User management
+
+# 2. Build PM App (localhost:3001)
+#    - Tenant/Employee login page
+#    - Project management features
+#    - Task boards
+#    - Team collaboration
+
+# 3. Add Projects & Tasks API
+#    - POST /api/projects (create project)
+#    - GET /api/projects (list projects)
+#    - POST /api/tasks (create task)
+#    - PATCH /api/tasks/{id} (update task)
+
+# 4. Implement Real-Time Features
+#    - WebSocket for live updates
+#    - Notifications
+#    - Activity feed
+
+# 5. Deploy to Production
+#    - Set up PostgreSQL on Neon/Supabase
+#    - Deploy Core API to Vercel
+#    - Deploy Admin Panel to Vercel
+#    - Deploy PM App to Vercel
+#    - Configure OAuth production URLs
+
+### ============================================================================
+### USEFUL COMMANDS
+### ============================================================================
+
+# Start dev server:
+# $ pnpm dev
+
+# Run migrations:
+# $ pnpm migrate:generate && pnpm migrate:up
+
+# Seed admin:
+# $ pnpm seed:admin
+
+# Check TypeScript errors:
+# $ pnpm tsc --noEmit
+
+# View database:
+# $ pnpm drizzle-kit studio
+
+# Reset database (CAUTION):
+# $ pnpm migrate:down
+# $ dropdb multitenant-pm
+# $ createdb multitenant-pm
+# $ pnpm migrate:up
+# $ pnpm seed:admin

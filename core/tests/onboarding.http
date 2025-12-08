@@ -1,0 +1,96 @@
+### ============================================================================
+### MULTI-TENANT PM SAAS - CORE API TESTS
+### Onboarding Requests (Future Feature)
+### ============================================================================
+
+@baseUrl = http://localhost:3000
+@contentType = application/json
+
+### Variables
+@adminSessionToken = your-admin-session-token-here
+@onboardingRequestId = your-request-id-here
+
+### ============================================================================
+### CREATE ONBOARDING REQUEST
+### ============================================================================
+
+### Submit Onboarding Request (During Signup)
+# @name submitOnboarding
+POST {{baseUrl}}/api/onboarding
+Content-Type: {{contentType}}
+
+{
+  "companyName": "Acme Corporation",
+  "companyWebsite": "https://acme.com",
+  "industry": "Technology",
+  "companySize": "MEDIUM",
+  "businessType": "B2B SaaS",
+  "useCase": "We need project management for our development teams",
+  "expectedEmployees": 25,
+  "expectedProjects": 50,
+  "interestedFeatures": ["Task Management", "Time Tracking", "Reports"],
+  "additionalInfo": "We're migrating from Jira and need data import support"
+}
+
+### ============================================================================
+### LIST ONBOARDING REQUESTS (Admin Only)
+### ============================================================================
+
+### Get All Onboarding Requests
+GET {{baseUrl}}/api/onboarding
+Cookie: better-auth.session_token={{adminSessionToken}}
+
+### Get Pending Requests
+GET {{baseUrl}}/api/onboarding?status=PENDING
+Cookie: better-auth.session_token={{adminSessionToken}}
+
+### Get Reviewed Requests
+GET {{baseUrl}}/api/onboarding?status=REVIEWED
+Cookie: better-auth.session_token={{adminSessionToken}}
+
+### ============================================================================
+### ONBOARDING REQUEST DETAILS
+### ============================================================================
+
+### Get Request by ID
+GET {{baseUrl}}/api/onboarding/{{onboardingRequestId}}
+Cookie: better-auth.session_token={{adminSessionToken}}
+
+### ============================================================================
+### REVIEW ONBOARDING REQUEST (Admin)
+### ============================================================================
+
+### Mark as Reviewed with Notes
+PATCH {{baseUrl}}/api/onboarding/{{onboardingRequestId}}
+Content-Type: {{contentType}}
+Cookie: better-auth.session_token={{adminSessionToken}}
+
+{
+  "status": "REVIEWED",
+  "reviewNotes": "Good fit for Premium tier. Contacted via email to discuss data migration.",
+  "recommendedTier": "PREMIUM"
+}
+
+### ============================================================================
+### NOTES
+### ============================================================================
+
+# Onboarding Flow:
+# 1. User signs up and fills out onboarding form
+# 2. Request submitted with status=PENDING
+# 3. Admin reviews request and contacts user
+# 4. Admin approves tenant with appropriate tier based on needs
+# 5. Request marked as REVIEWED
+
+# Use Cases:
+# - Collect business information during signup
+# - Help admins decide appropriate subscription tier
+# - Understand customer needs for better support
+# - Sales qualified leads (SQL) identification
+# - Custom enterprise tier negotiations
+
+# Company Size Options:
+# - SMALL: 1-50 employees
+# - MEDIUM: 51-200 employees
+# - LARGE: 201-1000 employees
+# - ENTERPRISE: 1000+ employees

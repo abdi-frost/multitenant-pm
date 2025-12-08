@@ -1,0 +1,218 @@
+### ============================================================================
+### MULTI-TENANT PM SAAS - CORE API TESTS
+### Tenant Management (Admin Only)
+### ============================================================================
+
+@baseUrl = http://localhost:3000
+@contentType = application/json
+
+### Variables (Update these after running tests)
+@adminSessionToken = your-admin-session-token-here
+@tenantId = your-tenant-id-here
+@tenantOwnerId = your-tenant-owner-id-here
+
+### ============================================================================
+### TENANT LISTING & SEARCH
+### ============================================================================
+
+### Get All Tenants (Admin Only)
+# @name getAllTenants
+GET {{baseUrl}}/api/tenants
+Cookie: better-auth.session_token={{adminSessionToken}}
+
+### Get Tenants with Pagination
+GET {{baseUrl}}/api/tenants?page=1&limit=10
+Cookie: better-auth.session_token={{adminSessionToken}}
+
+### Search Tenants by Name/Email
+GET {{baseUrl}}/api/tenants?search=test
+Cookie: better-auth.session_token={{adminSessionToken}}
+
+### Filter Tenants by Status
+GET {{baseUrl}}/api/tenants?status=PENDING
+Cookie: better-auth.session_token={{adminSessionToken}}
+
+### Get APPROVED Tenants Only
+GET {{baseUrl}}/api/tenants?status=APPROVED
+Cookie: better-auth.session_token={{adminSessionToken}}
+
+### Get REJECTED Tenants
+GET {{baseUrl}}/api/tenants?status=REJECTED
+Cookie: better-auth.session_token={{adminSessionToken}}
+
+### Combined Search with Filters
+GET {{baseUrl}}/api/tenants?search=company&status=PENDING&page=1&limit=20
+Cookie: better-auth.session_token={{adminSessionToken}}
+
+### ============================================================================
+### TENANT DETAILS
+### ============================================================================
+
+### Get Tenant by ID
+# @name getTenantById
+GET {{baseUrl}}/api/tenants/{{tenantId}}
+Cookie: better-auth.session_token={{adminSessionToken}}
+
+### ============================================================================
+### TENANT APPROVAL WORKFLOW
+### ============================================================================
+
+### Approve Tenant
+# @name approveTenant
+POST {{baseUrl}}/api/tenants/{{tenantId}}/approve
+Content-Type: {{contentType}}
+Cookie: better-auth.session_token={{adminSessionToken}}
+
+{
+  "subscriptionTier": "BASIC",
+  "maxEmployees": 10,
+  "maxProjects": 20,
+  "notes": "Approved for basic tier"
+}
+
+### Approve Tenant with Premium Tier
+POST {{baseUrl}}/api/tenants/{{tenantId}}/approve
+Content-Type: {{contentType}}
+Cookie: better-auth.session_token={{adminSessionToken}}
+
+{
+  "subscriptionTier": "PREMIUM",
+  "maxEmployees": 50,
+  "maxProjects": 100,
+  "notes": "Premium tier customer"
+}
+
+### Approve Tenant with Enterprise Tier
+POST {{baseUrl}}/api/tenants/{{tenantId}}/approve
+Content-Type: {{contentType}}
+Cookie: better-auth.session_token={{adminSessionToken}}
+
+{
+  "subscriptionTier": "ENTERPRISE",
+  "maxEmployees": -1,
+  "maxProjects": -1,
+  "notes": "Unlimited access for enterprise"
+}
+
+### Reject Tenant
+# @name rejectTenant
+POST {{baseUrl}}/api/tenants/{{tenantId}}/reject
+Content-Type: {{contentType}}
+Cookie: better-auth.session_token={{adminSessionToken}}
+
+{
+  "reason": "Invalid business information provided"
+}
+
+### ============================================================================
+### TENANT SOFT DELETE & RECOVERY
+### ============================================================================
+
+### Soft Delete Tenant (Mark as deleted)
+# @name softDeleteTenant
+DELETE {{baseUrl}}/api/tenants/{{tenantId}}
+Cookie: better-auth.session_token={{adminSessionToken}}
+
+### Recover Soft Deleted Tenant
+# @name recoverTenant
+POST {{baseUrl}}/api/tenants/{{tenantId}}/recover
+Cookie: better-auth.session_token={{adminSessionToken}}
+
+### Hard Delete Tenant (Permanent - Use with caution!)
+# @name hardDeleteTenant
+DELETE {{baseUrl}}/api/tenants/{{tenantId}}/hard-delete
+Cookie: better-auth.session_token={{adminSessionToken}}
+
+### ============================================================================
+### TENANT STATISTICS
+### ============================================================================
+
+### Get Tenant Count by Status
+GET {{baseUrl}}/api/tenants/stats/count
+Cookie: better-auth.session_token={{adminSessionToken}}
+
+### Get Recent Tenant Registrations
+GET {{baseUrl}}/api/tenants?page=1&limit=5&sort=createdAt&order=desc
+Cookie: better-auth.session_token={{adminSessionToken}}
+
+### ============================================================================
+### SUBSCRIPTION TIER EXAMPLES
+### ============================================================================
+
+# FREE Tier (Default for new sign-ups)
+# - maxEmployees: 5
+# - maxProjects: 3
+# - Features: Basic project management
+
+# BASIC Tier
+# - maxEmployees: 10
+# - maxProjects: 20
+# - Features: Basic + Reports
+
+# PREMIUM Tier
+# - maxEmployees: 50
+# - maxProjects: 100
+# - Features: Basic + Reports + Advanced Analytics
+
+# ENTERPRISE Tier
+# - maxEmployees: -1 (Unlimited)
+# - maxProjects: -1 (Unlimited)
+# - Features: All features + Custom integrations + Priority support
+
+### ============================================================================
+### ERROR SCENARIOS TO TEST
+### ============================================================================
+
+### Approve Already Approved Tenant (Should fail)
+POST {{baseUrl}}/api/tenants/{{tenantId}}/approve
+Content-Type: {{contentType}}
+Cookie: better-auth.session_token={{adminSessionToken}}
+
+{
+  "subscriptionTier": "BASIC",
+  "maxEmployees": 10,
+  "maxProjects": 20
+}
+
+### Access Without Admin Token (Should return 403)
+GET {{baseUrl}}/api/tenants
+Cookie: better-auth.session_token=invalid-token
+
+### Approve Non-Existent Tenant (Should return 404)
+POST {{baseUrl}}/api/tenants/non-existent-id/approve
+Content-Type: {{contentType}}
+Cookie: better-auth.session_token={{adminSessionToken}}
+
+{
+  "subscriptionTier": "BASIC",
+  "maxEmployees": 10,
+  "maxProjects": 20
+}
+
+### ============================================================================
+### NOTES
+### ============================================================================
+
+# Admin Only Endpoints:
+# - All tenant management endpoints require admin authentication
+# - Regular tenants and employees cannot access these endpoints
+
+# Tenant Approval Flow:
+# 1. Tenant signs up → Status: PENDING
+# 2. Admin reviews and approves → Status: APPROVED
+# 3. Tenant can now use full system features
+# OR
+# 2. Admin rejects → Status: REJECTED
+# 3. Tenant notified with reason
+
+# Soft vs Hard Delete:
+# - Soft Delete: Sets deleted=true, can be recovered
+# - Hard Delete: Permanently removes from database (CASCADE deletes all related data)
+
+# Testing Workflow:
+# 1. Sign in as admin (use auth.http)
+# 2. Get admin session token
+# 3. Create test tenant (or use existing from signup)
+# 4. Test approval/rejection flow
+# 5. Test soft delete and recovery
+# 6. NEVER test hard delete on production!

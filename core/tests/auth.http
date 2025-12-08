@@ -1,0 +1,185 @@
+### ============================================================================
+### MULTI-TENANT PM SAAS - CORE API TESTS
+### Authentication & User Management
+### ============================================================================
+
+@baseUrl = http://localhost:3000
+@contentType = application/json
+
+### Variables (Update these after running tests)
+@adminEmail = abdimegersa14@gmail.com
+@adminPassword = P@ssw0rd
+@tenantEmail = tenant@example.com
+@tenantPassword = Tenant123!
+@sessionToken = your-session-token-here
+@tenantId = your-tenant-id-here
+
+### ============================================================================
+### HEALTH CHECK
+### ============================================================================
+
+### Check API health
+GET {{baseUrl}}/api/health
+Accept: application/json
+
+### ============================================================================
+### ADMIN AUTHENTICATION
+### ============================================================================
+
+### Admin Sign In (Email/Password only)
+# @name adminSignIn
+POST {{baseUrl}}/api/auth/sign-in/email
+Content-Type: {{contentType}}
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+### Get Current Session
+# @name getSession
+GET {{baseUrl}}/api/auth/session
+Cookie: better-auth.session_token={{sessionToken}}
+
+### Sign Out (Logout)
+# Terminates the current session and clears authentication
+# After sign-out:
+# - Session token becomes invalid
+# - User must sign in again to access protected endpoints
+# - Both Admin Panel and PM App should redirect to login page
+# @name signOut
+POST {{baseUrl}}/api/auth/sign-out
+Cookie: better-auth.session_token={{sessionToken}}
+
+### Verify Sign Out (Should return 401 Unauthorized)
+# This should fail since the session token is now invalid
+GET {{baseUrl}}/api/auth/session
+Cookie: better-auth.session_token={{sessionToken}}
+
+### ============================================================================
+### TENANT AUTHENTICATION
+### ============================================================================
+
+### Tenant Sign Up (Email/Password)
+# @name tenantSignUp
+POST {{baseUrl}}/api/auth/sign-up/email
+Content-Type: {{contentType}}
+
+{
+  "email": "{{tenantEmail}}",
+  "password": "{{tenantPassword}}",
+  "name": "Test Tenant Owner"
+}
+
+### Tenant Sign In (Email/Password)
+# @name tenantSignIn
+POST {{baseUrl}}/api/auth/sign-in/email
+Content-Type: {{contentType}}
+
+{
+  "email": "{{tenantEmail}}",
+  "password": "{{tenantPassword}}"
+}
+
+### ============================================================================
+### OAUTH AUTHENTICATION (TENANT/EMPLOYEE)
+### ============================================================================
+
+### Google OAuth Sign In (Redirect URL)
+GET {{baseUrl}}/api/auth/sign-in/social/google
+Accept: application/json
+
+### GitHub OAuth Sign In (Redirect URL)
+GET {{baseUrl}}/api/auth/sign-in/social/github
+Accept: application/json
+
+### ============================================================================
+### USER PROFILE
+### ============================================================================
+
+### Get Current User Profile
+GET {{baseUrl}}/api/auth/user
+Cookie: better-auth.session_token={{sessionToken}}
+
+### Update User Profile
+PATCH {{baseUrl}}/api/auth/user
+Content-Type: {{contentType}}
+Cookie: better-auth.session_token={{sessionToken}}
+
+{
+  "name": "Updated Name",
+  "image": "https://example.com/avatar.jpg"
+}
+
+### ============================================================================
+### PASSWORD MANAGEMENT
+### ============================================================================
+
+### Request Password Reset
+POST {{baseUrl}}/api/auth/reset-password
+Content-Type: {{contentType}}
+
+{
+  "email": "{{tenantEmail}}"
+}
+
+### Reset Password with Token
+POST {{baseUrl}}/api/auth/reset-password/confirm
+Content-Type: {{contentType}}
+
+{
+  "token": "reset-token-from-email",
+  "password": "NewPassword123!"
+}
+
+### Change Password (Authenticated)
+POST {{baseUrl}}/api/auth/change-password
+Content-Type: {{contentType}}
+Cookie: better-auth.session_token={{sessionToken}}
+
+{
+  "currentPassword": "{{tenantPassword}}",
+  "newPassword": "NewPassword123!"
+}
+
+### ============================================================================
+### EMAIL VERIFICATION
+### ============================================================================
+
+### Resend Verification Email
+POST {{baseUrl}}/api/auth/verify-email
+Content-Type: {{contentType}}
+
+{
+  "email": "{{tenantEmail}}"
+}
+
+### Verify Email with Token
+POST {{baseUrl}}/api/auth/verify-email/confirm
+Content-Type: {{contentType}}
+
+{
+  "token": "verification-token-from-email"
+}
+
+### ============================================================================
+### NOTES
+### ============================================================================
+
+# How to use:
+# 1. Install REST Client extension for VS Code
+# 2. Update variables at the top after each request
+# 3. Click "Send Request" above each ### section
+# 4. Copy session token from response cookies for authenticated requests
+# 5. Use @name to reference response data in subsequent requests
+
+# Session Token Location:
+# - Look for "Set-Cookie" in response headers
+# - Copy value after "better-auth.session_token="
+# - Paste into @sessionToken variable
+
+# Next Steps:
+# - Run: pnpm dev
+# - Run: pnpm seed:admin
+# - Test admin sign in first
+# - Then test tenant sign up and sign in

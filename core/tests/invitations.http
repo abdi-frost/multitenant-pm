@@ -1,0 +1,308 @@
+### ============================================================================
+### MULTI-TENANT PM SAAS - CORE API TESTS
+### Employee Invitations (Tenant Owner)
+### ============================================================================
+
+@baseUrl = http://localhost:3000
+@contentType = application/json
+
+### Variables (Update these after running tests)
+@tenantSessionToken = your-tenant-session-token-here
+@tenantId = your-tenant-id-here
+@invitationToken = your-invitation-token-here
+@invitationId = your-invitation-id-here
+@employeeEmail = employee@example.com
+
+### ============================================================================
+### CREATE INVITATIONS (Tenant Owner Only)
+### ============================================================================
+
+### Invite Employee as Staff
+# @name inviteStaff
+POST {{baseUrl}}/api/invitations
+Content-Type: {{contentType}}
+Cookie: better-auth.session_token={{tenantSessionToken}}
+
+{
+  "email": "{{employeeEmail}}",
+  "role": "STAFF",
+  "firstName": "John",
+  "lastName": "Doe"
+}
+
+### Invite Employee as Manager
+# @name inviteManager
+POST {{baseUrl}}/api/invitations
+Content-Type: {{contentType}}
+Cookie: better-auth.session_token={{tenantSessionToken}}
+
+{
+  "email": "manager@example.com",
+  "role": "MANAGER",
+  "firstName": "Jane",
+  "lastName": "Smith"
+}
+
+### Invite Employee as Admin (Tenant Admin)
+# @name inviteTenantAdmin
+POST {{baseUrl}}/api/invitations
+Content-Type: {{contentType}}
+Cookie: better-auth.session_token={{tenantSessionToken}}
+
+{
+  "email": "admin@example.com",
+  "role": "ADMIN",
+  "firstName": "Bob",
+  "lastName": "Johnson"
+}
+
+### Bulk Invite Multiple Employees
+POST {{baseUrl}}/api/invitations/bulk
+Content-Type: {{contentType}}
+Cookie: better-auth.session_token={{tenantSessionToken}}
+
+{
+  "invitations": [
+    {
+      "email": "dev1@example.com",
+      "role": "STAFF",
+      "firstName": "Alice",
+      "lastName": "Developer"
+    },
+    {
+      "email": "dev2@example.com",
+      "role": "STAFF",
+      "firstName": "Charlie",
+      "lastName": "Developer"
+    },
+    {
+      "email": "pm@example.com",
+      "role": "MANAGER",
+      "firstName": "David",
+      "lastName": "Manager"
+    }
+  ]
+}
+
+### ============================================================================
+### LIST INVITATIONS (Tenant Owner)
+### ============================================================================
+
+### Get All Invitations for Tenant
+# @name getAllInvitations
+GET {{baseUrl}}/api/invitations
+Cookie: better-auth.session_token={{tenantSessionToken}}
+
+### Get Pending Invitations Only
+GET {{baseUrl}}/api/invitations?status=PENDING
+Cookie: better-auth.session_token={{tenantSessionToken}}
+
+### Get Accepted Invitations
+GET {{baseUrl}}/api/invitations?status=ACCEPTED
+Cookie: better-auth.session_token={{tenantSessionToken}}
+
+### Get Expired Invitations
+GET {{baseUrl}}/api/invitations?status=EXPIRED
+Cookie: better-auth.session_token={{tenantSessionToken}}
+
+### Get Invitations with Pagination
+GET {{baseUrl}}/api/invitations?page=1&limit=10
+Cookie: better-auth.session_token={{tenantSessionToken}}
+
+### ============================================================================
+### INVITATION DETAILS
+### ============================================================================
+
+### Get Invitation by Token (Public - No Auth)
+# @name getInvitationByToken
+GET {{baseUrl}}/api/invitations/{{invitationToken}}
+
+### Get Invitation by ID (Tenant Owner)
+GET {{baseUrl}}/api/invitations/id/{{invitationId}}
+Cookie: better-auth.session_token={{tenantSessionToken}}
+
+### ============================================================================
+### ACCEPT INVITATION (Employee)
+### ============================================================================
+
+### Accept Invitation with Existing Account (Social Auth)
+# Employee already has account from Google/GitHub OAuth
+POST {{baseUrl}}/api/invitations/{{invitationToken}}/accept
+Content-Type: {{contentType}}
+
+{
+  "userId": "user-id-from-oauth"
+}
+
+### Accept Invitation with Email/Password Signup
+# New employee creates account while accepting invitation
+POST {{baseUrl}}/api/invitations/{{invitationToken}}/accept
+Content-Type: {{contentType}}
+
+{
+  "email": "{{employeeEmail}}",
+  "password": "Employee123!",
+  "name": "John Doe"
+}
+
+### ============================================================================
+### MANAGE INVITATIONS (Tenant Owner)
+### ============================================================================
+
+### Resend Invitation Email
+# @name resendInvitation
+POST {{baseUrl}}/api/invitations/{{invitationId}}/resend
+Cookie: better-auth.session_token={{tenantSessionToken}}
+
+### Revoke Invitation
+# @name revokeInvitation
+DELETE {{baseUrl}}/api/invitations/{{invitationId}}
+Cookie: better-auth.session_token={{tenantSessionToken}}
+
+### Update Invitation Role
+PATCH {{baseUrl}}/api/invitations/{{invitationId}}
+Content-Type: {{contentType}}
+Cookie: better-auth.session_token={{tenantSessionToken}}
+
+{
+  "role": "MANAGER"
+}
+
+### ============================================================================
+### INVITATION VALIDATION
+### ============================================================================
+
+### Check if Email Already Invited
+GET {{baseUrl}}/api/invitations/check?email={{employeeEmail}}
+Cookie: better-auth.session_token={{tenantSessionToken}}
+
+### Validate Invitation Token (Before Accepting)
+GET {{baseUrl}}/api/invitations/{{invitationToken}}/validate
+
+### ============================================================================
+### EMPLOYEE ROLES REFERENCE
+### ============================================================================
+
+# STAFF:
+# - Can view and edit assigned tasks/projects
+# - Cannot manage other employees
+# - Cannot access tenant settings
+
+# MANAGER:
+# - All STAFF permissions
+# - Can create and manage projects
+# - Can assign tasks to team members
+# - Can view team reports
+
+# ADMIN (Tenant Admin):
+# - All MANAGER permissions
+# - Can invite and remove employees
+# - Can manage tenant settings
+# - Can upgrade/downgrade subscription
+# - Cannot approve tenants (that's system admin only)
+
+### ============================================================================
+### INVITATION WORKFLOW
+### ============================================================================
+
+# 1. Tenant Owner creates invitation
+#    → Status: PENDING
+#    → Token generated (expires in 7 days)
+#    → Email sent to employee
+
+# 2. Employee receives email with invitation link
+#    → Link format: https://pm-app.com/accept-invite?token=xxx
+
+# 3. Employee clicks link and chooses:
+#    Option A: Sign in with Google/GitHub (if has account)
+#    Option B: Create new account with email/password
+
+# 4. Employee accepts invitation
+#    → Status: ACCEPTED
+#    → Employee linked to tenant
+#    → Can now access PM app features
+
+# OR
+
+# 4. Invitation expires after 7 days
+#    → Status: EXPIRED
+#    → Tenant owner can resend invitation
+
+# OR
+
+# 4. Tenant owner revokes invitation
+#    → Status: REVOKED
+#    → Employee can no longer accept
+
+### ============================================================================
+### ERROR SCENARIOS TO TEST
+### ============================================================================
+
+### Invite with Non-Tenant Account (Should return 403)
+POST {{baseUrl}}/api/invitations
+Content-Type: {{contentType}}
+Cookie: better-auth.session_token=non-tenant-token
+
+{
+  "email": "test@example.com",
+  "role": "STAFF",
+  "firstName": "Test",
+  "lastName": "User"
+}
+
+### Accept Expired Invitation (Should return 400)
+POST {{baseUrl}}/api/invitations/expired-token/accept
+Content-Type: {{contentType}}
+
+{
+  "email": "test@example.com",
+  "password": "Test123!"
+}
+
+### Accept Already Accepted Invitation (Should return 400)
+POST {{baseUrl}}/api/invitations/{{invitationToken}}/accept
+Content-Type: {{contentType}}
+
+{
+  "userId": "existing-user-id"
+}
+
+### Invite Same Email Twice (Should return 400)
+POST {{baseUrl}}/api/invitations
+Content-Type: {{contentType}}
+Cookie: better-auth.session_token={{tenantSessionToken}}
+
+{
+  "email": "{{employeeEmail}}",
+  "role": "STAFF",
+  "firstName": "Duplicate",
+  "lastName": "User"
+}
+
+### ============================================================================
+### NOTES
+### ============================================================================
+
+# Tenant Owner Requirements:
+# - Must be authenticated with userType=TENANT
+# - Tenant must have status=APPROVED
+# - Must not exceed maxEmployees limit for subscription tier
+
+# Invitation Token:
+# - Secure random token generated with crypto.randomBytes
+# - Expires in 7 days (configurable)
+# - Single-use (can't be accepted twice)
+# - Includes tenant and role information
+
+# Email Notifications:
+# - Sent via email service (Resend or similar)
+# - Contains invitation link with token
+# - Includes tenant name and role information
+# - Reminder emails can be sent for pending invitations
+
+# Testing Best Practices:
+# 1. Create tenant and get it approved first (use tenants.http)
+# 2. Sign in as tenant owner (use auth.http)
+# 3. Create invitation and copy token from response
+# 4. Test acceptance flow in new browser/incognito
+# 5. Verify employee can access PM app features
