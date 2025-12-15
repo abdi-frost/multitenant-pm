@@ -59,7 +59,7 @@ export default function NewTenantPage() {
         },
         onError: (error: unknown) => {
             console.error('❌ Error details:', error)
-            const err = error as { response?: { data?: { error?: string, message?: string, details?: any } } }
+            const err = error as { response?: { data?: { error?: string, message?: string } } }
             const errorMessage = err?.response?.data?.error || err?.response?.data?.message || 'An unexpected error occurred.'
             console.error('❌ Error message:', errorMessage)
             console.error('❌ Full error object:', JSON.stringify(err?.response?.data, null, 2))
@@ -200,7 +200,7 @@ export default function NewTenantPage() {
                                                     <FormItem>
                                                         <FormLabel>Legal Name</FormLabel>
                                                         <FormControl>
-                                                            <Input placeholder="Acme Corp. LLC" {...field} />
+                                                            <Input placeholder="Acme Corp. LLC" {...field} value={field.value ?? ''} />
                                                         </FormControl>
                                                         <FormMessage />
                                                     </FormItem>
@@ -216,7 +216,7 @@ export default function NewTenantPage() {
                                                     <FormItem>
                                                         <FormLabel>Country</FormLabel>
                                                         <FormControl>
-                                                            <Input placeholder="United States" {...field} />
+                                                            <Input placeholder="United States" {...field} value={field.value ?? ''} />
                                                         </FormControl>
                                                         <FormMessage />
                                                     </FormItem>
@@ -230,7 +230,7 @@ export default function NewTenantPage() {
                                                     <FormItem>
                                                         <FormLabel>Phone</FormLabel>
                                                         <FormControl>
-                                                            <Input placeholder="+1 (555) 123-4567" {...field} />
+                                                            <Input placeholder="+1 (555) 123-4567" {...field} value={field.value ?? ""} />
                                                         </FormControl>
                                                         <FormMessage />
                                                     </FormItem>
