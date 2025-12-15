@@ -1,75 +1,56 @@
 'use client'
-import { AUTH_API } from "@/api/constants";
 import { Spinner } from "@/components/ui/spinner";
-import { coreApiClient } from "@/lib/api.client";
-import { User } from "@/types";
-import { AuthContextType } from "@/types/auth";
-import { useRouter } from "next/navigation";
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+    AuthContextType,
+    LoginCredentials,
+    LoginResponse,
+    LogoutResponse,
+    SessionResponse
+} from "@/types/auth";
+import { authClient } from "@/lib/auth";
+import { createContext, useContext, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { protectedRoutes } from "@/config/protected-routes";
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-
-    const [user, setUser] = useState<User | null>(null);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [fetchingSession, setFetchingSession] = useState<boolean>(false);
+    const { data: sessionData, isPending, error } = authClient.useSession();
     const router = useRouter();
+    const pathname = usePathname();
 
-    const fetchSession = async () => {
-        setLoading(true);
-        setFetchingSession(true);
-        try {
-            const session = await coreApiClient.get(AUTH_API.SESSION);
-            const sessionUser = session.data.user;
-
-            setUser(sessionUser);
-
-        } catch (error) {
-            setUser(null);
-            console.error("Failed to fetch session:", error);
-        } finally {
-            setLoading(false);
-            setFetchingSession(false);
-        }
-    }
+    const user = sessionData?.user || null;
+    const loading = isPending;
 
     useEffect(() => {
-        fetchSession();
-    }, []);
+        if (loading) return;
 
-    const signIn = async (email: string, password: string) => {
-        setLoading(true);
-        try {
-            const response = await coreApiClient.post(AUTH_API.SIGNIN, { email, password });
-            const signedInUser = response.data.user;
+        console.log("AuthProvider useEffect:", { user, pathname });
+        const isLoginPage = pathname === "/login";
+        const isProtected = protectedRoutes.some(route => pathname.startsWith(route));
 
-            setUser(signedInUser);
-
-        } catch (error) {
-            setUser(null);
-            console.error("Sign-in failed:", error);
-            throw error;
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    const signOut = async () => {
-        try {
-            await coreApiClient.post(AUTH_API.SIGN_OUT);
-            setUser(null);
+        if (!user && (isProtected)) {
             router.push("/login");
-        } catch (error) {
-            console.error("Sign out error:", error);
+        } else if (user && (isLoginPage)) {
+            router.push("/dashboard");
         }
+    }, [user, loading, pathname, router]);
+
+    const login = async (credentials: LoginCredentials): Promise<LoginResponse> => {
+        return await authClient.signIn.email(credentials);
     };
 
-    const refetch = async () => {
-        await fetchSession();
+    const logout = async (): Promise<LogoutResponse> => {
+        const res = await authClient.signOut();
+        router.push("/login");
+        return res;
+    };
+
+    const getSession = async (): Promise<SessionResponse> => {
+        return await authClient.getSession();
     }
 
-    if (fetchingSession) {
+    if (loading) {
         return (
             <div className="h-screen flex items-center justify-center">
                 <Spinner />
@@ -78,7 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     return (
-        <AuthContext.Provider value={{ user, loading, signIn, signOut, refetch }}>
+        <AuthContext.Provider value={{ user, loading, login, logout, getSession }}>
             {children}
         </AuthContext.Provider>
     );

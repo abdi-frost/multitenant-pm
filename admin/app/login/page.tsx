@@ -4,34 +4,42 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2, Building2, Lock, Mail } from "lucide-react";
-import { useAuth } from "@/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { authClient } from "@/lib/auth";
+import { Switch } from "@/components/ui/switch";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const { signIn, user } = useAuth();
+  const [rememberMe, setRememberMe] = useState(true);
   const router = useRouter();
 
-  // Redirect if already authenticated
-  if (user) {
-    router.push("/dashboard");
-    return null;
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      await signIn(email, password);
-      toast.success("Welcome back!");
-    } catch (error: Error) {
-      toast.error(error.message || "Failed to signin");
+      const { data, error } = await authClient.signIn.email({ email, password });
+
+      if (data) {
+        toast.success("Successfully signed in!");
+        router.push("/dashboard");
+        return;
+      }
+
+      if (error) {
+        const message = error?.message ?? "Failed to sign in";
+        toast.error(message);
+        return;
+      }
+
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : typeof err === "string" ? err : "Failed to sign in";
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -91,6 +99,18 @@ export default function LoginPage() {
                     disabled={loading}
                   />
                 </div>
+              </div>
+
+              {/* Remember Me Checkbox */}
+              <div className="flex items-center">
+                <Switch
+                  id="rememberMe"
+                  checked={rememberMe}
+                  onCheckedChange={() => setRememberMe(prev => !prev)}
+                  disabled={loading}
+                  className="mr-2"
+                />
+                <Label htmlFor="rememberMe">Remember Me</Label>
               </div>
 
               <Button

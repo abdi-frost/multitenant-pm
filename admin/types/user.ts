@@ -3,6 +3,10 @@ export interface User {
   email: string;
   name: string;
   userType: string;
+  role: string;
   emailVerified: boolean;
-  image?: string;
+  image?: string | null;
+  approved: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }

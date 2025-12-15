@@ -7,5 +7,5 @@ export const AUTH_API = {
 }
 
 export const TENANT_API = {
-    TENANTS: "/tenants",
+    TENANTS: "/admin/tenants",
 }

@@ -34,8 +34,6 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Input } from '@/components/ui/input'
 import { useTheme } from 'next-themes'
-import { AUTH_API } from '@/api/constants'
-import { coreApiClient } from '@/lib/api.client'
 import { AccountDropdown } from './AccountDropdown'
 
 const navigationItems = [
@@ -48,43 +46,43 @@ const navigationItems = [
     {
         title: 'Tenants',
         icon: Building2,
-        href: '/dashboard/tenants',
+        href: '/tenants',
         badge: null,
     },
     {
         title: 'Users',
         icon: Users,
-        href: '/dashboard/users',
+        href: '/users',
         badge: null,
     },
     {
         title: 'Subscriptions',
         icon: CreditCard,
-        href: '/dashboard/subscriptions',
+        href: '/subscriptions',
         badge: 'New',
     },
     {
         title: 'Analytics',
         icon: BarChart3,
-        href: '/dashboard/analytics',
+        href: '/analytics',
         badge: null,
     },
     {
         title: 'Activity Logs',
         icon: Activity,
-        href: '/dashboard/activity',
+        href: '/activity',
         badge: null,
     },
     {
         title: 'Reports',
         icon: FileText,
-        href: '/dashboard/reports',
+        href: '/reports',
         badge: null,
     },
     {
         title: 'Settings',
         icon: Settings,
-        href: '/dashboard/settings',
+        href: '/settings',
         badge: null,
     },
 ]
@@ -156,7 +154,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 {/* Main Content */}
                 <div className="flex flex-1 flex-col overflow-hidden">
                     {/* Header */}
-                    <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6">
+                    <header className="sticksy top-0 z-10 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6">
                         <div className="flex items-center gap-4">
                             <SidebarTrigger className="h-8 w-8">
                                 <Menu className="h-5 w-5" />

@@ -73,37 +73,63 @@ export interface OnboardingRequestDTO extends BaseEntityDTO {
 // REQUEST DTOs
 // ============================================================================
 
+export interface NewTenantDTO {
+    id: string;
+    uuid?: string | undefined;
+    status?: string | undefined;
+    metadata?: unknown;
+    deleted?: boolean | undefined;
+    deletedAt?: Date | null | undefined;
+    createdAt?: Date | undefined;
+    updatedAt?: Date | undefined;
+    ownerId?: string | null | undefined;
+    moderationLog?: {
+        action: TenantStatus;
+        by: string;
+        reason?: string;
+        at: string;
+    }[] | undefined;
+    createdBy?: string | null | undefined;
+}
+
+export interface NewOrganizationDTO {
+    name: string;
+    tenantId: string;
+    metadata?: unknown;
+    deleted?: boolean | undefined;
+    deletedAt?: Date | null | undefined;
+    createdAt?: Date | undefined;
+    updatedAt?: Date | undefined;
+    legalName?: string | null | undefined;
+    country?: string | null | undefined;
+    address?: unknown;
+    phone?: string | null | undefined;
+    logoUrl?: string | null | undefined;
+    website?: string | null | undefined;
+    preferences?: unknown;
+}
+
+export interface NewUserDTO {
+    id?: string;
+    name: string;
+    email: string;
+    tenantId?: string | null | undefined;
+    emailVerified?: boolean | undefined;
+    image?: string | null | undefined;
+    userType?: string | undefined;
+    role?: string | undefined;
+    approved?: boolean | undefined;
+    metadata?: unknown;
+    deleted?: boolean | undefined;
+    deletedAt?: Date | null | undefined;
+    createdAt?: Date | undefined;
+    updatedAt?: Date | undefined;
+}
+
 export interface CreateTenantDTO {
-    tenant: {
-        id: string; // Email or unique identifier
-        metadata?: Record<string, any>;
-        isActive?: boolean;
-    };
-    organization: {
-        name: string;
-        description?: string;
-        logoUrl?: string;
-        website?: string;
-        industry?: string;
-        size?: OrganizationSize;
-        preferences?: Record<string, any>;
-        isActive?: boolean;
-        metadata?: Record<string, any>;
-    };
-    onboardingRequest?: {
-        description?: string;
-        companyDetails?: Record<string, any>;
-        businessType?: string;
-        expectedUsers?: number;
-        isActive?: boolean;
-        metadata?: Record<string, any>;
-    };
-    user: {
-        name: string;
-        email: string;
-        image?: string;
-        password?: string; // Optional if using OAuth
-    };
+    tenant: NewTenantDTO;
+    organization: NewOrganizationDTO;
+    user: NewUserDTO;
 }
 
 export interface ApproveTenantDTO {

@@ -22,7 +22,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Search, MoreHorizontal, Users, Activity, Clock } from 'lucide-react'
+import { Search, MoreHorizontal, Users, Activity, Clock, PlusCircle } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { getTenants } from '@/api/tenant'
 import { ListResponse } from '@/types/response'
@@ -30,6 +30,7 @@ import { TenantDTO, TenantStatus } from '@/types/tenant'
 import { TenantRegistrationForm } from '@/components/tenants/TenantRegistrationForm'
 import { TenantDetailsDialog } from '@/components/tenants/TenantDetailsDialog'
 import { Skeleton } from '@/components/ui/skeleton'
+import Link from 'next/link'
 
 export default function TenantsPage() {
     const [selectedTenant, setSelectedTenant] = useState<TenantDTO | null>(null)
@@ -46,7 +47,7 @@ export default function TenantsPage() {
     })
 
     const tenants = data?.data || []
-    
+
     const pendingCount = tenants.filter(t => t.status === TenantStatus.PENDING).length
     const approvedCount = tenants.filter(t => t.status === TenantStatus.APPROVED).length
     const rejectedCount = tenants.filter(t => t.status === TenantStatus.REJECTED).length
@@ -88,7 +89,12 @@ export default function TenantsPage() {
                             Manage tenant registrations and approvals
                         </p>
                     </div>
-                    <TenantRegistrationForm />
+                    <Button
+                        variant="outline"
+                    >
+                        <PlusCircle />
+                        <Link href="/tenants/new" className='hidden md:block'>Register New Tenant</Link>
+                    </Button>
                 </div>
 
                 {/* Stats Cards */}
@@ -174,10 +180,7 @@ export default function TenantsPage() {
                                     <TableRow>
                                         <TableHead>Tenant ID</TableHead>
                                         <TableHead>Organization</TableHead>
-                                        <TableHead>Industry</TableHead>
-                                        <TableHead>Size</TableHead>
                                         <TableHead>Status</TableHead>
-                                        <TableHead>Requested</TableHead>
                                         <TableHead className="w-[50px]"></TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -186,10 +189,7 @@ export default function TenantsPage() {
                                         <TableRow key={tenant.id}>
                                             <TableCell className="font-medium">{tenant.id}</TableCell>
                                             <TableCell>{tenant.organization?.name || 'N/A'}</TableCell>
-                                            <TableCell>{tenant.organization?.industry || 'N/A'}</TableCell>
-                                            <TableCell>{tenant.organization?.size || 'N/A'}</TableCell>
                                             <TableCell>{getStatusBadge(tenant.status)}</TableCell>
-                                            <TableCell>{formatDate(tenant.requestedAt)}</TableCell>
                                             <TableCell>
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
@@ -205,13 +205,13 @@ export default function TenantsPage() {
                                                         </DropdownMenuItem>
                                                         {tenant.status === TenantStatus.PENDING && (
                                                             <>
-                                                                <DropdownMenuItem 
+                                                                <DropdownMenuItem
                                                                     onClick={() => handleViewDetails(tenant)}
                                                                     className="text-green-600"
                                                                 >
                                                                     Approve Tenant
                                                                 </DropdownMenuItem>
-                                                                <DropdownMenuItem 
+                                                                <DropdownMenuItem
                                                                     onClick={() => handleViewDetails(tenant)}
                                                                     className="text-destructive"
                                                                 >
