@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/db/schemas";
+import { NextResponse } from "next/server";
+import { db } from "@/db";
 
 /**
  * Health Check Endpoint
