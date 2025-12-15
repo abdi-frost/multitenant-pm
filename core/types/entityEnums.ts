@@ -6,6 +6,8 @@ export enum TenantStatus {
     PENDING = 'PENDING',
     APPROVED = 'APPROVED',
     REJECTED = 'REJECTED',
+    SUSPENDED = 'SUSPENDED',
+    REINSTATED = 'REINSTATED',
 }
 
 export enum SubscriptionTier {
@@ -28,8 +30,21 @@ export enum OrganizationSize {
 
 export enum UserType {
     ADMIN = 'ADMIN',             // System admin (seeded, email/password only)
-    TENANT = 'TENANT',           // Tenant owner (social auth or email/password)
-    EMPLOYEE = 'EMPLOYEE',       // Employee (invited, social auth or email/password)
+    USER = 'USER',       // Regular user (tenant member)
+}
+
+export enum UserRole {
+    SUPER_ADMIN = 'SUPER_ADMIN', // System super admin
+    ADMIN = 'ADMIN',             // lower system admin
+    TENANT_ADMIN = 'TENANT_ADMIN',   // Tenant admin
+    MEMBER = 'MEMBER',           // Regular tenant member
+}
+
+export enum UserStatus {
+    ACTIVE = 'ACTIVE',
+    SUSPENDED = 'SUSPENDED',
+    DEACTIVATED = 'DEACTIVATED',
+    INVITED = 'INVITED',
 }
 
 export enum EmployeeRole {

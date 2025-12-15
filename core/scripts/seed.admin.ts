@@ -1,4 +1,4 @@
-import { db } from '@/db/index';
+import { db } from '@/db/schemas/index';
 import { userTable } from '@/db/schema';
 import { UserType } from '@/types/entityEnums';
 import { eq } from 'drizzle-orm';

@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "unique_employee" ON "employees" USING btree ("tenant_id","user_id");

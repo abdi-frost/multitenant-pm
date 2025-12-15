@@ -1,13 +1,13 @@
-import { createTenant, getTenants, RepositoryError } from "@/db/repositories/tenant.repository";
-import { CreateTenant } from "@/types/entityDTO";
+import { AdminTenantRepository, RepositoryError } from "@/db/repositories";
+import type { AdminCreateTenantDTO } from "@/types/entityDTO";
 import { ResponseFactory } from "@/types/response";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
     try {
-        const requestData = await request.json() as CreateTenant;
+        const requestData = await request.json() as AdminCreateTenantDTO;
         // TODO: Add validation for requestData
-        const result = await createTenant(requestData);
+        const result = await AdminTenantRepository.createTenant(requestData);
 
         // success -> return created
         return NextResponse.json(result, { status: 201 });
@@ -25,13 +25,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
     try {
-        const { searchParams } = new URL(request.url);
-        const page = searchParams.get("page") ? parseInt(searchParams.get("page") as string, 10) : 1;
-        const limit = searchParams.get("limit") ? parseInt(searchParams.get("limit") as string, 10) : 20;
-        const search = searchParams.get("search") || undefined;
-
-        const result = await getTenants({ page, limit, search });
-
+        const result = await AdminTenantRepository.getTenants();
         return NextResponse.json(result, { status: 200 });
     } catch (error) {
         console.error("Error in GET /api/tenants:", error);

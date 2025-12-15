@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { CreateInvitationDTO, AcceptInvitationDTO } from "@/types/entityDTO";
-import { db } from "../index";
+import { db } from "../schemas/index";
 import { invitationsTable, userTable, organizationsTable } from "../schema";
 import { ResponseFactory } from "@/types/response";
 import { and, eq } from "drizzle-orm";
