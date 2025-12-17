@@ -12,12 +12,13 @@ export type Pagination = {
     totalPages: number;
 }
 
-export interface ListResponse<T> {
+export interface ListResponse<T, S = Record<string, unknown>> {
     data: T[];
     pagination: Pagination;
     error?: string;
     message?: string;
     success: boolean;
+    summary: S;
 }
 
 export class ResponseFactory {
@@ -29,7 +30,14 @@ export class ResponseFactory {
         };
     }
 
-    static createDataListResponse<T>(data: T[], total: number, page: number, limit: number, message?: string): ListResponse<T> {
+    static createDataListResponse<T, S = Record<string, unknown>>(
+        data: T[],
+        total: number,
+        page: number,
+        limit: number,
+        message?: string,
+        summary?: S,
+    ): ListResponse<T, S> {
         return {
             data,
             pagination: {
@@ -40,15 +48,22 @@ export class ResponseFactory {
             },
             success: true,
             message,
+            summary: (summary ?? ({} as S)),
         };
     }
 
-    static createListResponse<T>(data: T[], pagination: Pagination, message?: string): ListResponse<T> {
+    static createListResponse<T, S = Record<string, unknown>>(
+        data: T[],
+        pagination: Pagination,
+        message?: string,
+        summary?: S,
+    ): ListResponse<T, S> {
         return {
             data,
             pagination,
             success: true,
             message,
+            summary: (summary ?? ({} as S)),
         };
     }
 

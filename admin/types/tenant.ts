@@ -6,6 +6,8 @@ export enum TenantStatus {
     PENDING = 'PENDING',
     APPROVED = 'APPROVED',
     REJECTED = 'REJECTED',
+    SUSPENDED = 'SUSPENDED',
+    REINSTATED = 'REINSTATED',
 }
 
 export enum SubscriptionTier {
@@ -37,6 +39,12 @@ interface ModerationLog {
     by: string;
     reason?: string;
     at: string;
+}
+
+export interface OnboardingRequestDTO {
+    businessType?: string | null
+    expectedUsers?: number | null
+    description?: string | null
 }
 
 export interface TenantDTO extends BaseEntityDTO {
@@ -136,3 +144,17 @@ export interface RejectTenantDTO {
 export type ApproveTenantInput = Omit<ApproveTenantDTO, 'tenantId'>
 
 export type RejectTenantInput = Omit<RejectTenantDTO, 'tenantId'>
+
+export type TenantStatusCounts = Partial<Record<TenantStatus, number>>
+
+export interface TenantListSummary {
+    totalTenants: number
+    byStatus: TenantStatusCounts
+    pending: number
+    approved: number
+    rejected: number
+    suspended: number
+    reinstated: number
+    hasOwner: number
+    hasCreatedBy: number
+}
