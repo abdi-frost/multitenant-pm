@@ -7,7 +7,7 @@ export const auth = betterAuth({
 
   cookies: {
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: "none",
   },
 
   database: drizzleAdapter(db, {
