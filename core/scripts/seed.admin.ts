@@ -1,5 +1,5 @@
-import { db } from '@/db/schemas/index';
-import { userTable } from '@/db/schema';
+import { db } from '@/db';
+import { users } from '@/db/schema';
 import { UserType } from '@/types/entityEnums';
 import { eq } from 'drizzle-orm';
 import * as dotenv from "dotenv";
@@ -27,7 +27,7 @@ async function seedAdmin() {
     console.log('🔍 Checking for existing admin...');
 
     // Check if admin already exists
-    const existing = await db.query.userTable.findFirst({
+    const existing = await db.query.users.findFirst({
         where: (t, { eq }) => eq(t.email, ADMIN_EMAIL),
     });
 
@@ -56,7 +56,7 @@ async function seedAdmin() {
         console.log('📝 Updating user type to ADMIN...');
 
         // Update the user to be an ADMIN type
-        await db.update(userTable)
+        await db.update(users)
             .set({
                 userType: UserType.ADMIN,
                 emailVerified: true,
@@ -64,7 +64,7 @@ async function seedAdmin() {
                 tenantId: null,
                 organizationId: null,
             })
-            .where(eq(userTable.id, result.user.id));
+            .where(eq(users.id, result.user.id));
 
         console.log('✅ Admin created successfully!');
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
