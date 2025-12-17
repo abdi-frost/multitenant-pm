@@ -14,7 +14,7 @@ export const createTenant = async (data: CreateTenantDTO) => {
     return await coreApiClient.post(`${TENANT_API.TENANTS}`, data)
 }
 
-export const updateTenant = async (tenantId: string, data: any) => {
+export const updateTenant = async (tenantId: string, data: Partial<CreateTenantDTO>) => {
     return await coreApiClient.put(`${TENANT_API.TENANTS}/${tenantId}`, data)
 }
 
@@ -24,4 +24,8 @@ export const approveTenant = async (tenantId: string, data: Omit<ApproveTenantDT
 
 export const rejectTenant = async (tenantId: string, data: Omit<RejectTenantDTO, 'tenantId'>) => {
     return await coreApiClient.patch(`${TENANT_API.TENANTS}/${tenantId}/reject`, data)
+}
+
+export const deleteTenant = async (tenantId: string) => {
+    return await coreApiClient.delete(`${TENANT_API.TENANTS}/${tenantId}`)
 }

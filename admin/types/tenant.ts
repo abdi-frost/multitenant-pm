@@ -32,22 +32,21 @@ export interface BaseEntityDTO {
     updatedAt: Date;
 }
 
+interface ModerationLog {
+    action: TenantStatus;
+    by: string;
+    reason?: string;
+    at: string;
+}
+
 export interface TenantDTO extends BaseEntityDTO {
     uuid: string;
     status: TenantStatus;
-    requestedAt: Date;
-    approvedAt?: Date | null;
-    approvedBy?: string | null;
-    rejectedAt?: Date | null;
-    rejectedBy?: string | null;
-    rejectionReason?: string | null;
-    subscriptionTier?: SubscriptionTier;
-    maxEmployees?: number;
-    maxProjects?: number;
-    subscriptionExpiresAt?: Date | null;
-    // Related data
     organization?: OrganizationDTO;
     onboardingRequest?: OnboardingRequestDTO;
+    ownerId: string | null;
+    moderationLog: ModerationLog[];
+    createdBy: string | null;
 }
 
 export interface OrganizationDTO extends BaseEntityDTO {
@@ -59,14 +58,6 @@ export interface OrganizationDTO extends BaseEntityDTO {
     industry?: string | null;
     size?: OrganizationSize | null;
     preferences?: Record<string, any>;
-}
-
-export interface OnboardingRequestDTO extends BaseEntityDTO {
-    tenantId: string;
-    description?: string | null;
-    companyDetails?: Record<string, any>;
-    businessType?: string | null;
-    expectedUsers?: number | null;
 }
 
 // ============================================================================
@@ -134,14 +125,10 @@ export interface CreateTenantDTO {
 
 export interface ApproveTenantDTO {
     tenantId: string;
-    approvedBy: string;
-    subscriptionTier?: SubscriptionTier;
-    maxEmployees?: number;
-    maxProjects?: number;
+    reason: string;
 }
 
 export interface RejectTenantDTO {
     tenantId: string;
-    rejectedBy: string;
-    rejectionReason: string;
+    reason: string;
 }

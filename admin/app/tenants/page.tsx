@@ -27,17 +27,18 @@ import { useQuery } from '@tanstack/react-query'
 import { getTenants } from '@/api/tenant'
 import { ListResponse } from '@/types/response'
 import { TenantDTO, TenantStatus } from '@/types/tenant'
-import { TenantRegistrationForm } from '@/components/tenants/TenantRegistrationForm'
 import { TenantDetailsDialog } from '@/components/tenants/TenantDetailsDialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 export default function TenantsPage() {
+    const router = useRouter()
     const [selectedTenant, setSelectedTenant] = useState<TenantDTO | null>(null)
     const [detailsOpen, setDetailsOpen] = useState(false)
     const [searchTerm, setSearchTerm] = useState('')
 
-    const { data, isLoading, error, isError } = useQuery<ListResponse<TenantDTO>>({
+    const { data, isLoading, isError } = useQuery<ListResponse<TenantDTO>>({
         queryKey: ['tenants', searchTerm],
         queryFn: async () => {
             const queryParams = searchTerm ? `search=${encodeURIComponent(searchTerm)}` : ''
@@ -70,12 +71,8 @@ export default function TenantsPage() {
         setDetailsOpen(true)
     }
 
-    const formatDate = (date: Date | string) => {
-        return new Date(date).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-        })
+    const handleOpenDetailsPage = (tenant: TenantDTO) => {
+        router.push(`/tenants/${tenant.id}`)
     }
 
     return (
@@ -200,7 +197,7 @@ export default function TenantsPage() {
                                                     <DropdownMenuContent align="end">
                                                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                                         <DropdownMenuSeparator />
-                                                        <DropdownMenuItem onClick={() => handleViewDetails(tenant)}>
+                                                        <DropdownMenuItem onClick={() => handleOpenDetailsPage(tenant)}>
                                                             View Details
                                                         </DropdownMenuItem>
                                                         {tenant.status === TenantStatus.PENDING && (

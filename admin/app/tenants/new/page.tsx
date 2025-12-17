@@ -1,6 +1,7 @@
 'use client'
 
-import { useForm } from 'react-hook-form'
+import { useState } from 'react'
+import { useForm, type FieldPath } from 'react-hook-form'
 import { DevTool } from '@hookform/devtools'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createTenant } from '@/api/tenant'
@@ -10,6 +11,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription }
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { CountrySelector } from '@/components/ui/country-selector'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 import { DashboardLayout } from '@/components/layouts/DashboardLayout'
@@ -17,6 +19,10 @@ import { Building2, User, Shield } from 'lucide-react'
 
 export default function NewTenantPage() {
     const queryClient = useQueryClient()
+
+    const steps = ['tenant', 'organization', 'user'] as const
+    type Step = (typeof steps)[number]
+    const [activeTab, setActiveTab] = useState<Step>('tenant')
 
     const form = useForm<CreateTenantDTO>({
         defaultValues: {
@@ -30,7 +36,6 @@ export default function NewTenantPage() {
                 legalName: '',
                 country: '',
                 phone: '',
-                logoUrl: '',
                 website: '',
             },
             user: {
@@ -85,7 +90,6 @@ export default function NewTenantPage() {
                 legalName: data.organization.legalName || undefined,
                 country: data.organization.country || undefined,
                 phone: data.organization.phone || undefined,
-                logoUrl: data.organization.logoUrl || undefined,
                 website: data.organization.website || undefined,
             },
             user: {
@@ -102,6 +106,29 @@ export default function NewTenantPage() {
         createMutation.mutate(payload)
     }
 
+    const goNext = async () => {
+        const currentIndex = steps.indexOf(activeTab)
+        if (currentIndex >= steps.length - 1) return
+
+        const fieldsToValidate: FieldPath<CreateTenantDTO>[] =
+            activeTab === 'tenant'
+                ? ['tenant.id']
+                : activeTab === 'organization'
+                    ? ['organization.name']
+                    : ['user.name', 'user.email']
+
+        const isValid = await form.trigger(fieldsToValidate, { shouldFocus: true })
+        if (!isValid) return
+
+        setActiveTab(steps[currentIndex + 1])
+    }
+
+    const goBack = () => {
+        const currentIndex = steps.indexOf(activeTab)
+        if (currentIndex <= 0) return
+        setActiveTab(steps[currentIndex - 1])
+    }
+
     return (
         <DashboardLayout>
             <div className="mx-auto space-y-6">
@@ -114,7 +141,7 @@ export default function NewTenantPage() {
 
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                        <Tabs defaultValue="tenant" className="w-full">
+                        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as Step)} className="w-full">
                             <TabsList className="grid w-full grid-cols-3">
                                 <TabsTrigger value="tenant" className="flex items-center gap-2">
                                     <Shield className="h-4 w-4" />
@@ -178,6 +205,19 @@ export default function NewTenantPage() {
                                                 </FormItem>
                                             )}
                                         />
+                                    </CardContent>
+                                </Card>
+                            </TabsContent>
+
+                            <TabsContent value="organization" className="space-y-4">
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Organization Details</CardTitle>
+                                        <CardDescription>
+                                            Details about the tenant&apos;s organization
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <FormField
                                                 control={form.control}
@@ -216,8 +256,13 @@ export default function NewTenantPage() {
                                                     <FormItem>
                                                         <FormLabel>Country</FormLabel>
                                                         <FormControl>
-                                                            <Input placeholder="United States" {...field} value={field.value ?? ''} />
+                                                            <CountrySelector
+                                                                value={field.value}
+                                                                onValueChange={field.onChange}
+                                                                disabled={createMutation.isPending}
+                                                            />
                                                         </FormControl>
+                                                        <FormDescription>Stored as ISO code (e.g., Ethiopia → ET)</FormDescription>
                                                         <FormMessage />
                                                     </FormItem>
                                                 )}
@@ -230,7 +275,7 @@ export default function NewTenantPage() {
                                                     <FormItem>
                                                         <FormLabel>Phone</FormLabel>
                                                         <FormControl>
-                                                            <Input placeholder="+1 (555) 123-4567" {...field} value={field.value ?? ""} />
+                                                            <Input placeholder="+1 (555) 123-4567" {...field} value={field.value ?? ''} />
                                                         </FormControl>
                                                         <FormMessage />
                                                     </FormItem>
@@ -238,35 +283,19 @@ export default function NewTenantPage() {
                                             />
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <FormField
-                                                control={form.control}
-                                                name="organization.website"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel>Website</FormLabel>
-                                                        <FormControl>
-                                                            <Input placeholder="https://acmecorp.com" {...field} />
-                                                        </FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-
-                                            <FormField
-                                                control={form.control}
-                                                name="organization.logoUrl"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel>Logo URL</FormLabel>
-                                                        <FormControl>
-                                                            <Input placeholder="https://acmecorp.com/logo.png" {...field} />
-                                                        </FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                        </div>
+                                        <FormField
+                                            control={form.control}
+                                            name="organization.website"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Website</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="https://acmecorp.com" {...field} value={field.value ?? ''} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
                                     </CardContent>
                                 </Card>
                             </TabsContent>
@@ -325,7 +354,7 @@ export default function NewTenantPage() {
                                                                 </SelectTrigger>
                                                             </FormControl>
                                                             <SelectContent>
-                                                                <SelectItem value="User">User</SelectItem>
+                                                                <SelectItem value="USER">User</SelectItem>
                                                             </SelectContent>
                                                         </Select>
                                                         <FormMessage />
@@ -369,16 +398,37 @@ export default function NewTenantPage() {
                                 >
                                     Reset Form
                                 </Button>
-                                <Button type="submit" disabled={createMutation.isPending}>
-                                    {createMutation.isPending ? (
-                                        <>
-                                            <span className="mr-2">Registering...</span>
-                                            <span className="animate-spin">⏳</span>
-                                        </>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={goBack}
+                                        disabled={createMutation.isPending || activeTab === 'tenant'}
+                                    >
+                                        Back
+                                    </Button>
+
+                                    {activeTab !== 'user' ? (
+                                        <Button
+                                            type="button"
+                                            onClick={goNext}
+                                            disabled={createMutation.isPending}
+                                        >
+                                            Next
+                                        </Button>
                                     ) : (
-                                        'Register Tenant'
+                                        <Button type="submit" disabled={createMutation.isPending}>
+                                            {createMutation.isPending ? (
+                                                <>
+                                                    <span className="mr-2">Registering...</span>
+                                                    <span className="animate-spin">⏳</span>
+                                                </>
+                                            ) : (
+                                                'Register Tenant'
+                                            )}
+                                        </Button>
                                     )}
-                                </Button>
+                                </div>
                             </CardFooter>
                         </Card>
                     </form>
