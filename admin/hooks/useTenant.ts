@@ -4,15 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 import { approveTenant, deleteTenant, rejectTenant } from '@/api/tenant'
-import { useAuth } from '@/providers/AuthProvider'
-
-export type ApproveTenantInput = {
-    reason: string
-}
-
-export type RejectTenantInput = {
-    reason: string
-}
+import type { ApproveTenantInput, RejectTenantInput } from '@/types/tenant'
 
 type UseTenantMutationsOptions = {
     onApproved?: () => void
@@ -44,7 +36,7 @@ export function useTenantMutations(options: UseTenantMutationsOptions = {}) {
     const rejectMutation = useMutation({
         mutationFn: async ({ tenantId, data }: { tenantId: string, data: RejectTenantInput }) => {
             return await rejectTenant(tenantId, {
-                reason: data.rejectionReason,
+                reason: data.reason,
             })
         },
         onSuccess: (_res, { tenantId }) => {

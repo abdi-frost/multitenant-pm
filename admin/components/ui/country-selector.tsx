@@ -3,7 +3,8 @@
 import { useMemo, useState } from 'react'
 import { ChevronDown, Check } from 'lucide-react'
 
-import { COUNTRIES, getCountryNameByCode, normalizeCountryCode, type CountryOption } from '@/lib/countries'
+import { COUNTRIES, getCountryNameByCode, normalizeCountryCode } from '@/lib/countries'
+import type { CountryOption } from '@/types/country'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'

@@ -132,3 +132,7 @@ export interface RejectTenantDTO {
     tenantId: string;
     reason: string;
 }
+
+export type ApproveTenantInput = Omit<ApproveTenantDTO, 'tenantId'>
+
+export type RejectTenantInput = Omit<RejectTenantDTO, 'tenantId'>

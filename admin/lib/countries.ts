@@ -1,7 +1,4 @@
-export type CountryOption = {
-    code: string
-    name: string
-}
+import type { CountryOption } from '@/types/country'
 
 // ISO 3166-1 alpha-2 country codes.
 // Stored value should be the 2-letter code (e.g., Ethiopia -> ET).
