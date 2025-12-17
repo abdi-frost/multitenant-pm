@@ -7,7 +7,7 @@ export const auth = betterAuth({
 
   cookies: {
     secure: process.env.NODE_ENV === "production",
-    sameSite: "none",
+    sameSite: "none", // if lax will block on cross-site requests
   },
 
   database: drizzleAdapter(db, {
