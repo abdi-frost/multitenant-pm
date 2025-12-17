@@ -1,6 +1,6 @@
 import { db } from '@/db';
 import { users } from '@/db/schema';
-import { UserType } from '@/types/entityEnums';
+import { UserRole, UserType } from '@/types/entityEnums';
 import { eq } from 'drizzle-orm';
 import * as dotenv from "dotenv";
 import { auth } from '@/lib/auth';
@@ -60,9 +60,8 @@ async function seedAdmin() {
             .set({
                 userType: UserType.ADMIN,
                 emailVerified: true,
-                role: null,
+                role: UserRole.SUPER_ADMIN,
                 tenantId: null,
-                organizationId: null,
             })
             .where(eq(users.id, result.user.id));
 
