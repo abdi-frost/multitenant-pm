@@ -5,9 +5,11 @@ import { nextCookies } from "better-auth/next-js";
 
 export const auth = betterAuth({
 
-  cookies: {
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "none", // if lax will block on cross-site requests
+  advanced: {
+    defaultCookieAttributes: {
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "none",
+    }
   },
 
   database: drizzleAdapter(db, {
