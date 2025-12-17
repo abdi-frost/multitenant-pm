@@ -1,7 +1,7 @@
 import { db } from '@/db';
 import { ResponseFactory } from "@/types/response";
-import { AdminCreateTenantDTO, TenantStatus, UserRole, UserStatus } from "@/types";
-import { employees, organizations, tenants } from '../schema';
+import { AdminCreateTenantDTO, TenantStatus, UserRole, UserStatus, UserType } from "@/types";
+import { account, employees, organizations, session, tenants, users, verification } from '../schema';
 import { auth } from '@/lib/auth';
 import { and, eq } from 'drizzle-orm';
 
@@ -15,10 +15,49 @@ export class RepositoryError extends Error {
 }
 
 export class AdminTenantRepository {
+    private static async cleanupAuthUser(params: { userId?: string | null; email?: string | null }) {
+        const email = params.email ?? null;
+        let userId = params.userId ?? null;
+
+        // If we don't have an id, try to resolve it by email.
+        if (!userId && email) {
+            const existing = await db.query.users.findFirst({
+                where: eq(users.email, email),
+            });
+            userId = existing?.id ?? null;
+        }
+
+        if (!userId) return;
+
+        // Best-effort direct DB cleanup.
+        try {
+            await db.transaction(async (tx) => {
+                // These tables reference users via FK (cascade may handle this),
+                // but we delete explicitly to be safe across environments.
+                await tx.delete(account).where(eq(account.userId, userId));
+                await tx.delete(session).where(eq(session.userId, userId));
+
+                // Verification rows are keyed by identifier (often email), not FK.
+                if (email) {
+                    await tx.delete(verification).where(eq(verification.identifier, email));
+                }
+
+                // In case something partially linked the user to SaaS tables.
+                await tx.delete(employees).where(eq(employees.userId, userId));
+
+                await tx.delete(users).where(eq(users.id, userId));
+            });
+        } catch (error) {
+            console.error("Fallback auth user cleanup failed", error);
+        }
+    }
+
     /**
      * Create a new tenant along with its organization and admin user
      */
     static async createTenant({ tenant, organization, user }: AdminCreateTenantDTO) {
+        let createdUserId: string | null = null;
+
         try {
 
             // 1️⃣ Create user via Better Auth first
@@ -30,12 +69,14 @@ export class AdminTenantRepository {
                 }
             });
 
-            if (!authResult?.user?.id) {
+            createdUserId = authResult?.user?.id ?? null;
+
+            if (!createdUserId) {
                 console.log("[+] Better Auth error: failed to create user")
                 throw new RepositoryError("Failed to create tenant owner user", 500);
             }
 
-            const tenantOwnerId = authResult.user.id;
+            const tenantOwnerId = createdUserId;
 
             // 2️⃣ Transaction: tenant + org + employee
             const result = await db.transaction(async (tx) => {
@@ -62,11 +103,17 @@ export class AdminTenantRepository {
                     joinedAt: new Date()
                 }).returning();
 
+                const updatedUser = await tx.update(users).set({
+                    role: UserRole.TENANT_ADMIN,
+                    userType: UserType.USER,
+                    tenantId: tenant.id
+                }).where(eq(users.id, tenantOwnerId)).returning();
+
                 return {
                     tenant: newTenant[0],
                     organization: newOrganization[0],
                     employee: newEmployee[0],
-                    user: authResult.user
+                    user: updatedUser[0]
                 };
             });
 
@@ -77,6 +124,19 @@ export class AdminTenantRepository {
 
         } catch (error) {
             console.log("Error creating tenant:", error);
+
+            // Also remove the signup user from Better Auth (and related auth tables) if needed.
+            // This is best-effort cleanup and should never mask the original error.
+            try {
+                await AdminTenantRepository.cleanupAuthUser({
+                    // If signUpEmail succeeded we should have an id; if not, fallback to email lookup.
+                    userId: createdUserId,
+                    email: user.email,
+                });
+            } catch {
+                // ignore
+            }
+
             throw new RepositoryError("Failed to create tenant");
         }
     }
@@ -102,6 +162,59 @@ export class AdminTenantRepository {
         } catch (error) {
             console.error("Error fetching tenants:", error);
             throw new RepositoryError("Failed to retrieve tenants");
+        }
+    }
+
+    /**
+     * Retrieve a tenant by ID
+     */
+    static async getTenantById(tenantId: string) {
+        try {
+            const tenant = await db.query.tenants.findFirst({
+                where: eq(tenants.id, tenantId),
+                with: {
+                    organization: true,
+                    employees: {
+                        with: {
+                            user: true
+                        }
+                    }
+                }
+            });
+            if (!tenant) {
+                throw new RepositoryError("Tenant not found", 404);
+            }
+            return ResponseFactory.createDataResponse(tenant, "Tenant retrieved successfully");
+        } catch (error) {
+            console.error("Error fetching tenant by ID:", error);
+            if (error instanceof RepositoryError) {
+                throw error;
+            }
+            throw new RepositoryError("Failed to retrieve tenant");
+        }
+    }
+
+    /**
+     * Delete a tenant by ID
+     */
+    static async deleteTenant(tenantId: string) {
+        try {
+            const result = await db.delete(tenants)
+                .where(and(
+                    eq(tenants.id, tenantId),
+                    eq(tenants.deleted, false)
+                ));
+
+            if (result.rowCount === 0) {
+                throw new RepositoryError("Tenant not found or already deleted", 404);
+            }
+            return ResponseFactory.createSuccessResponse("Tenant deleted successfully");
+        } catch (error) {
+            console.error("Error deleting tenant:", error);
+            if (error instanceof RepositoryError) {
+                throw error;
+            }
+            throw new RepositoryError("Failed to delete tenant");
         }
     }
 

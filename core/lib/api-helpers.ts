@@ -35,6 +35,31 @@ export async function getCurrentUser(): Promise<ExtendedUser | null> {
 }
 
 /**
+ * Get the current session from a Route Handler request (Next.js App Router).
+ *
+ * Use this inside App Router route handlers (e.g. `app/api/.../route.ts`) where you already have access
+ * to the incoming Request object.
+ */
+export async function getSessionFromRequest(request: Request) {
+    try {
+        return await auth.api.getSession({
+            headers: request.headers,
+        });
+    } catch (error) {
+        console.error("Error getting session from request:", error);
+        return null;
+    }
+}
+
+/**
+ * Get the current authenticated user from a Route Handler request.
+ */
+export async function getUserFromRequest(request: Request): Promise<ExtendedUser | null> {
+    const session = await getSessionFromRequest(request);
+    return (session?.user as ExtendedUser | null) || null;
+}
+
+/**
  * Require authentication - returns user or throws 401
  */
 export async function requireAuth(): Promise<ExtendedUser> {
@@ -44,6 +69,34 @@ export async function requireAuth(): Promise<ExtendedUser> {
         throw new AuthError("Unauthorized", 401);
     }
     
+    return user;
+}
+
+/**
+ * Require authentication (Route Handler variant) - returns user or throws 401.
+ */
+export async function requireAuthFromRequest(request: Request): Promise<ExtendedUser> {
+    const user = await getUserFromRequest(request);
+
+    if (!user) {
+        throw new AuthError("Unauthorized", 401);
+    }
+
+    return user;
+}
+
+/**
+ * Require admin authentication (Route Handler variant).
+ */
+export async function requireAdminFromRequest(request: Request): Promise<ExtendedUser> {
+    const user = await requireAuthFromRequest(request);
+
+    // NOTE: This project currently uses `userType` in checks.
+    // If your canonical admin flag is `role`, swap this condition accordingly.
+    if (user.userType !== UserType.ADMIN) {
+        throw new AuthError("Forbidden: Admin access required", 403);
+    }
+
     return user;
 }
 
@@ -66,7 +119,7 @@ export async function requireAdmin(): Promise<ExtendedUser> {
 export async function requireTenantOwner(): Promise<ExtendedUser> {
     const user = await requireAuth();
     
-    if (user.userType !== UserType.TENANT) {
+    if (user.userType !== UserType.USER) {
         throw new AuthError("Forbidden: Tenant owner access required", 403);
     }
     
