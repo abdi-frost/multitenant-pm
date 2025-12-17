@@ -18,6 +18,7 @@ export interface ListResponse<T> {
     error?: string;
     message?: string;
     success: boolean;
+    summary: Record<string, unknown>;
 }
 
 export class ResponseFactory {
@@ -29,7 +30,7 @@ export class ResponseFactory {
         };
     }
 
-    static createDataListResponse<T>(data: T[], total: number, page: number, limit: number, message?: string): ListResponse<T> {
+    static createDataListResponse<T>(data: T[], total: number, page: number, limit: number, message?: string, summary?: Record<string, unknown>): ListResponse<T> {
         return {
             data,
             pagination: {
@@ -40,15 +41,17 @@ export class ResponseFactory {
             },
             success: true,
             message,
+            summary: summary || {}
         };
     }
 
-    static createListResponse<T>(data: T[], pagination: Pagination, message?: string): ListResponse<T> {
+    static createListResponse<T>(data: T[], pagination: Pagination, message?: string, summary?: Record<string, unknown>): ListResponse<T> {
         return {
             data,
             pagination,
             success: true,
             message,
+            summary: summary || {}
         };
     }
 

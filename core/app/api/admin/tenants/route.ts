@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
 
     try {
         const body: AdminCreateTenantDTO = await request.json();
-        console.log({body})
+        console.log({ body })
         if (!body.tenant || !body.organization || !body.user) {
             return NextResponse.json(
                 { error: "Missing required tenant, organization, or user data" },
@@ -32,9 +32,18 @@ export async function POST(request: NextRequest) {
 }
 
 
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
-        const tenants = await AdminTenantRepository.getTenants();
+        const url = new URL(request.url);
+        const page = url.searchParams.get("page");
+        const limit = url.searchParams.get("limit");
+        const search = url.searchParams.get("search");
+
+        const tenants = await AdminTenantRepository.getTenants({
+            page: page ? Number(page) : undefined,
+            limit: limit ? Number(limit) : undefined,
+            search: search ?? undefined,
+        });
         return NextResponse.json(tenants, { status: 200 });
     } catch (error) {
         console.error("Error in GET /api/admin/tenants:", error);

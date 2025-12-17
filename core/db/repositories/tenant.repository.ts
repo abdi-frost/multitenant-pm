@@ -3,7 +3,7 @@ import { ResponseFactory } from "@/types/response";
 import { AdminCreateTenantDTO, TenantStatus, UserRole, UserStatus, UserType } from "@/types";
 import { account, employees, organizations, session, tenants, users, verification } from '../schema';
 import { auth } from '@/lib/auth';
-import { and, eq } from 'drizzle-orm';
+import { and, count, desc, eq, ilike, isNotNull, or, sql } from 'drizzle-orm';
 
 export class RepositoryError extends Error {
     status: number;
@@ -144,20 +144,96 @@ export class AdminTenantRepository {
     /**
      * Retrieve all tenants
      */
-    static async getTenants() {
+    static async getTenants(params?: { page?: number; limit?: number; search?: string }) {
         try {
-            const tenantsList = await db.query.tenants.findMany({
-                with: {
-                    organization: true,
-                },
-                where: eq(tenants.deleted, false),
-            });
-            return ResponseFactory.createListResponse(tenantsList, {
-                page: 1,
-                limit: 20,
-                total: tenantsList.length,
-                totalPages: 1
+            const page = Math.max(1, Number(params?.page ?? 1) || 1);
+            const limit = Math.min(100, Math.max(1, Number(params?.limit ?? 20) || 20));
+            const offset = (page - 1) * limit;
+
+            const search = (params?.search ?? "").trim();
+
+            const baseConditions = [eq(tenants.deleted, false)];
+            if (search) {
+                const searchTerm = `%${search}%`;
+                const searchCondition = or(
+                    ilike(tenants.id, searchTerm),
+                    ilike(sql`coalesce(${organizations.name}, '')`, searchTerm),
+                    ilike(sql`coalesce(${organizations.legalName}, '')`, searchTerm)
+                );
+                if (searchCondition) baseConditions.push(searchCondition);
             }
+            const whereClause = and(...baseConditions);
+
+            // Data query (paginated)
+            const rows = await db
+                .select({ tenant: tenants, organization: organizations })
+                .from(tenants)
+                .leftJoin(organizations, eq(organizations.tenantId, tenants.id))
+                .where(whereClause)
+                .orderBy(desc(tenants.createdAt))
+                .limit(limit)
+                .offset(offset);
+
+            const data = rows.map((r) => ({
+                ...r.tenant,
+                organization: r.organization,
+            }));
+
+            // Summary queries (aggregates on filtered set)
+            const [totalRow] = await db
+                .select({ total: count() })
+                .from(tenants)
+                .leftJoin(organizations, eq(organizations.tenantId, tenants.id))
+                .where(whereClause);
+
+            const total = Number(totalRow?.total ?? 0);
+
+            const statusRows = await db
+                .select({ status: tenants.status, total: count() })
+                .from(tenants)
+                .leftJoin(organizations, eq(organizations.tenantId, tenants.id))
+                .where(whereClause)
+                .groupBy(tenants.status);
+
+            const byStatus = statusRows.reduce<Record<string, number>>((acc, row) => {
+                acc[String(row.status)] = Number(row.total);
+                return acc;
+            }, {});
+
+            const [hasOwnerRow] = await db
+                .select({ total: count() })
+                .from(tenants)
+                .leftJoin(organizations, eq(organizations.tenantId, tenants.id))
+                .where(and(whereClause, isNotNull(tenants.ownerId)));
+
+            const [hasCreatedByRow] = await db
+                .select({ total: count() })
+                .from(tenants)
+                .leftJoin(organizations, eq(organizations.tenantId, tenants.id))
+                .where(and(whereClause, isNotNull(tenants.createdBy)));
+
+            const summary = {
+                totalTenants: total,
+                byStatus,
+                pending: byStatus[TenantStatus.PENDING] ?? 0,
+                approved: byStatus[TenantStatus.APPROVED] ?? 0,
+                rejected: byStatus[TenantStatus.REJECTED] ?? 0,
+                suspended: byStatus[TenantStatus.SUSPENDED] ?? 0,
+                reinstated: byStatus[TenantStatus.REINSTATED] ?? 0,
+                hasOwner: Number(hasOwnerRow?.total ?? 0),
+                hasCreatedBy: Number(hasCreatedByRow?.total ?? 0),
+            };
+
+            return ResponseFactory.createListResponse(
+                data,
+                {
+                    page,
+                    limit,
+                    total,
+                    totalPages: Math.ceil(total / limit) || 1,
+                },
+                undefined,
+                summary
             );
         } catch (error) {
             console.error("Error fetching tenants:", error);
