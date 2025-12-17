@@ -4,6 +4,12 @@ import { db } from "@/db";
 import { nextCookies } from "better-auth/next-js";
 
 export const auth = betterAuth({
+
+  cookies: {
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+  },
+
   database: drizzleAdapter(db, {
     provider: "pg",
   }),
