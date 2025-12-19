@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2, Building2, Lock, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,18 +16,26 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
-  const router = useRouter();
+
+  const redirect = useSearchParams().get("redirect") || "dashboard";
+  const callbackURL = `${process.env.NEXT_PUBLIC_ADMIN_APP_URL}/${redirect}`;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const { data, error } = await authClient.signIn.email({ email, password });
+      const { data, error } = await authClient.signIn.email(
+        {
+          email,
+          password,
+          callbackURL,
+          rememberMe
+        }
+      );
 
       if (data) {
         toast.success("Successfully signed in!");
-        router.push("/dashboard");
         return;
       }
 

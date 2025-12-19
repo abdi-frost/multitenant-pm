@@ -11,6 +11,7 @@ import { authClient } from "@/lib/auth";
 import { createContext, useContext, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { protectedRoutes } from "@/config/protected-routes";
+import { UserType } from "@/types";
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -29,10 +30,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const isLoginPage = pathname === "/login";
         const isProtected = protectedRoutes.some(route => pathname.startsWith(route));
 
-        if (!user && (isProtected)) {
+        if (!user && isProtected) {
             router.push("/login");
-        } else if (user && (isLoginPage)) {
+        } else if (user && isLoginPage && user.userType == UserType.ADMIN) {
             router.push("/dashboard");
+        } else if (user && isLoginPage) {
+            if (user.userType === UserType.ADMIN) {
+                router.push("/dashboard");
+            } else {
+                router.push("/");
+            }
         }
     }, [user, loading, pathname, router]);
 
