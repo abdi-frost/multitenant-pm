@@ -1,19 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
+import { authClient } from "@/lib/auth";
+import { protectedRoutes } from "@/config/protected-routes";
 import { getSessionCookie } from "better-auth/cookies";
 
 export async function proxy(request: NextRequest) {
-	const sessionCookie = getSessionCookie(request);
+	const { pathname } = request.nextUrl;
 
-    // THIS IS NOT SECURE!
-    // This is the recommended approach to optimistically redirect users
-    // We recommend handling auth checks in each page/route
-	if (!sessionCookie) {
-		console.log("No session cookie found");
+	// Only enforce auth for protected routes
+	const isProtected = protectedRoutes.some(
+		(route) => pathname === route || pathname.startsWith(`${route}/`)
+	);
+	if (!isProtected) {
+		return NextResponse.next();
+	}
+
+	const cookie = getSessionCookie(request);
+
+	if (!Boolean(cookie)) {
+		// Redirect unauthenticated users to login with return path
+		const loginUrl = request.nextUrl.clone();
+		loginUrl.pathname = "/login";
+		loginUrl.searchParams.set("redirect", pathname);
+		return NextResponse.redirect(loginUrl);
 	}
 
 	return NextResponse.next();
 }
 
+// Apply middleware to all protected routes and their nested paths
 export const config = {
-	matcher: ["/dashboard"], // Specify the routes the middleware applies to
+	// apply to all routes
+	matcher: [
+		/*
+		* Match all request paths except for the ones starting with:
+		* - api (API routes)
+		* - _next/static (static files)
+		* - _next/image (image optimization files)
+		* - favicon.ico, sitemap.xml, robots.txt (metadata files)
+		*/
+		'/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)',
+	],
 };

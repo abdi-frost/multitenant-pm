@@ -161,26 +161,6 @@ export default function TenantsPage() {
                             <p className="text-xs text-muted-foreground">Restored tenants</p>
                         </CardContent>
                     </Card>
-
-                    <Card>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium">Has Owner</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{hasOwnerCount}</div>
-                            <p className="text-xs text-muted-foreground">Linked owner accounts</p>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium">Has Created By</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{hasCreatedByCount}</div>
-                            <p className="text-xs text-muted-foreground">Tracked creators</p>
-                        </CardContent>
-                    </Card>
                 </div>
 
                 {summary?.byStatus ? (
