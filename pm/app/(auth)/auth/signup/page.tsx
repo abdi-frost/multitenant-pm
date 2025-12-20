@@ -2,16 +2,16 @@
 
 import { useState } from 'react'
 import { useForm, type FieldPath } from 'react-hook-form'
-import { useMutation } from '@tanstack/react-query'
-import { registerTenant } from '@/api/tenant'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { TenantRegistrationDTO } from '@/types/tenant'
+import { tenantRegistrationSchema } from '@/lib/validation/tenant.schema'
+import { useRegisterTenant } from '@/hooks/useTenantRegistration'
 import { Input } from '@/components/ui/input'
 import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { CountrySelector } from '@/components/ui/country-selector'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { toast } from 'sonner'
 import { Building2, User, Shield } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
@@ -21,7 +21,18 @@ export default function TenantSignupPage() {
     type Step = (typeof steps)[number]
     const [activeTab, setActiveTab] = useState<Step>('tenant')
 
+    const registerMutation = useRegisterTenant({
+        onSuccess: () => {
+            form.reset()
+            // Redirect to login after a delay
+            setTimeout(() => {
+                router.push('/auth/login')
+            }, 2000)
+        },
+    })
+
     const form = useForm<TenantRegistrationDTO>({
+        resolver: zodResolver(tenantRegistrationSchema),
         defaultValues: {
             tenant: {
                 id: '',
@@ -46,35 +57,6 @@ export default function TenantSignupPage() {
                 expectedUsers: 0,
                 description: '',
             },
-        },
-    })
-
-    const registerMutation = useMutation({
-        mutationFn: async (data: TenantRegistrationDTO) => {
-            console.log('🚀 Registering tenant:', JSON.stringify(data, null, 2))
-            return await registerTenant(data)
-        },
-        onSuccess: (response) => {
-            console.log('✅ Registration successful:', response)
-            toast.success('Registration successful!', {
-                description: 'Your tenant registration is pending approval. You will be notified once approved.',
-                duration: 5000,
-            })
-            form.reset()
-            // Redirect to login or success page after a delay
-            setTimeout(() => {
-                router.push('/auth/login')
-            }, 2000)
-        },
-        onError: (error: unknown) => {
-            console.error('❌ Registration error:', error)
-            const err = error as { response?: { data?: { error?: string, message?: string } } }
-            const errorMessage = err?.response?.data?.error || err?.response?.data?.message || 'An unexpected error occurred.'
-            console.error('❌ Error message:', errorMessage)
-            toast.error('Registration failed', {
-                description: errorMessage,
-                duration: 5000,
-            })
         },
     })
 
@@ -174,13 +156,6 @@ export default function TenantSignupPage() {
                                     <FormField
                                         control={form.control}
                                         name="tenant.id"
-                                        rules={{
-                                            required: 'Tenant ID is required',
-                                            pattern: {
-                                                value: /^[a-z0-9-]+$/,
-                                                message: 'Only lowercase letters, numbers, and hyphens allowed'
-                                            }
-                                        }}
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Tenant ID *</FormLabel>
@@ -211,7 +186,6 @@ export default function TenantSignupPage() {
                                         <FormField
                                             control={form.control}
                                             name="organization.name"
-                                            rules={{ required: 'Organization name is required' }}
                                             render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel>Organization Name *</FormLabel>
@@ -316,7 +290,6 @@ export default function TenantSignupPage() {
                                     <FormField
                                         control={form.control}
                                         name="user.name"
-                                        rules={{ required: 'Name is required' }}
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Full Name *</FormLabel>
@@ -331,13 +304,6 @@ export default function TenantSignupPage() {
                                     <FormField
                                         control={form.control}
                                         name="user.email"
-                                        rules={{
-                                            required: 'Email is required',
-                                            pattern: {
-                                                value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                                                message: 'Invalid email address'
-                                            }
-                                        }}
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Email Address *</FormLabel>
@@ -352,13 +318,6 @@ export default function TenantSignupPage() {
                                     <FormField
                                         control={form.control}
                                         name="user.password"
-                                        rules={{
-                                            required: 'Password is required',
-                                            minLength: {
-                                                value: 8,
-                                                message: 'Password must be at least 8 characters'
-                                            }
-                                        }}
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Password *</FormLabel>
