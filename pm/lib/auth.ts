@@ -15,7 +15,7 @@ export const authClient = createAuthClient({
             approved: {
                 type: "boolean"
             },
-            metdata: {
+            metadata: {
                 type: "json"
             }
         }
