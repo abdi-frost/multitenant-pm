@@ -8,40 +8,76 @@ import {
     SessionResponse
 } from "@/types/auth";
 import { authClient } from "@/lib/auth";
-import { createContext, useContext, useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
-import { protectedRoutes } from "@/config/protected-routes";
+import { createContext, useContext, useEffect, useRef } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { UserType } from "@/types";
+import { URLS } from "@/config/urls";
+import { Button } from "@/components/ui/button";
+
+const LOGIN_PATH = "/auth/login";
+const protectedRoutes = ["/tenants", "/dashboard"];
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-    const { data: sessionData, isPending, error } = authClient.useSession();
+    const { data: sessionData, isPending, error, refetch } = authClient.useSession();
     const router = useRouter();
     const pathname = usePathname();
 
     const user = sessionData?.user || null;
+    const session = sessionData?.session || null;
+    const isAuth = !!user && !!session
     const loading = isPending;
+
+    const lastRedirect = useRef<string | null>(null);
+    const searchParams = useSearchParams();
 
     useEffect(() => {
         if (loading) return;
+        if (typeof pathname !== "string") return;
 
-        console.log("AuthProvider useEffect:", { user, pathname });
-        const isLoginPage = pathname === "/login";
-        const isProtected = protectedRoutes.some(route => pathname.startsWith(route));
+        const normalizedPath = pathname || "/";
+        const isProtected = protectedRoutes.some(
+            (route) => normalizedPath === route || normalizedPath.startsWith(`${route}/`)
+        );
 
-        if (!user && isProtected) {
-            router.push("/login");
-        } else if (user && isLoginPage && user.userType == UserType.ADMIN) {
-            router.push("/dashboard");
-        } else if (user && isLoginPage) {
-            if (user.userType === UserType.ADMIN) {
-                router.push("/dashboard");
+        // Avoid duplicate redirects
+        if (lastRedirect.current === normalizedPath) return;
+
+        // Helper to navigate, using full-nav for external URLs
+        const navigateTo = (dest: string) => {
+            if (dest.startsWith("http://") || dest.startsWith("https://")) {
+                window.location.href = dest;
             } else {
-                router.push("/");
+                router.replace(dest);
+            }
+            lastRedirect.current = normalizedPath;
+        };
+
+        // If unauthenticated and on a protected route, send to login with return path
+        if (!isAuth && isProtected) {
+            const url = new URL(LOGIN_PATH, window.location.href);
+            url.searchParams.set("redirect", normalizedPath);
+            navigateTo(url.pathname + url.search);
+            return;
+        }
+
+        // If authenticated but on login page, forward to intended destination
+        if (isAuth) {
+
+            const redirectParam = searchParams?.get("redirect");
+            if (redirectParam && redirectParam !== normalizedPath) {
+                navigateTo(redirectParam);
+                return;
+            }
+
+            // Fallback by user type
+            const dest = user?.userType === UserType.USER ? URLS.PM_APP : "/dashboard";
+            if (dest && dest !== normalizedPath) {
+                navigateTo(dest);
             }
         }
-    }, [user, loading, pathname, router]);
+    }, [isAuth, user?.userType, loading, pathname, router, searchParams]);
 
     const login = async (credentials: LoginCredentials): Promise<LoginResponse> => {
         return await authClient.signIn.email(credentials);
@@ -61,6 +97,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return (
             <div className="h-screen flex items-center justify-center">
                 <Spinner />
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="h-screen flex items-center justify-center">
+                <div className="flex items-center gap-2">
+                    <p className="text-red-500">Error: {error.message}</p>
+                    <Button onClick={() => refetch()}>Retry</Button>
+                </div>
             </div>
         );
     }

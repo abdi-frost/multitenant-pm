@@ -2,19 +2,23 @@
 
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/providers/AuthProvider"
 import { Spinner } from "@/components/ui/spinner"
+import { authClient } from "@/lib/auth"
+
+const LOGIN_PATH = "/auth/login";
 
 export default function Home() {
   const router = useRouter()
-  const { user, loading } = useAuth()
+  const { data: sessionData, isPending } = authClient.useSession();
+  const user = sessionData?.user ?? null;
+  const loading = isPending;
 
   useEffect(() => {
     if (!loading) {
       if (user) {
         router.push("/dashboard")
       } else {
-        router.push("/login")
+        router.push(LOGIN_PATH)
       }
     }
   }, [user, loading, router])
