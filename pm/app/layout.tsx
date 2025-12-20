@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
 import "@/lib/env";
-import { AuthProvider } from "@/providers/AuthProvider";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import { Toaster } from "sonner";
 import QueryProvider from "@/providers/QueryProvider";
@@ -32,10 +31,8 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <QueryProvider>
-            <AuthProvider>
-              {children}
+            {children}
               <Toaster position="bottom-right" />
-            </AuthProvider>
           </QueryProvider>
         </ThemeProvider>
       </body>

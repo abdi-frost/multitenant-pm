@@ -68,7 +68,7 @@ export default function AcceptInvitationPage() {
             })
 
             toast.success("Invitation accepted! You can now log in.")
-            router.push("/login")
+            router.push("/auth/login")
         } catch (error: any) {
             toast.error(error.response?.data?.message || "Failed to accept invitation")
         } finally {
@@ -102,7 +102,7 @@ export default function AcceptInvitationPage() {
                     </CardHeader>
                     <CardContent>
                         <Button 
-                            onClick={() => router.push("/login")} 
+                            onClick={() => router.push("/auth/login")} 
                             className="w-full"
                         >
                             Go to Login

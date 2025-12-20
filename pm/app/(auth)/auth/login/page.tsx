@@ -1,32 +1,28 @@
-'use client'
+"use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Spinner } from "@/components/ui/spinner"
-import { useAuth } from "@/providers/AuthProvider"
 import { toast } from "sonner"
 import Link from "next/link"
-import { Building2 } from "lucide-react"
+import { Building2, Eye, EyeOff } from "lucide-react"
+import { authClient } from "@/lib/auth"
+import { URLS } from "@/config/urls"
 
 export default function LoginPage() {
-    const router = useRouter()
-    const { signIn, user } = useAuth()
     
+    const callbackURL = `${URLS.PM_APP}/app`
+
     const [loading, setLoading] = useState(false)
     const [formData, setFormData] = useState({
         email: "",
         password: "",
     })
+    const [showPassword, setShowPassword] = useState(false)
 
-    // Redirect if already logged in
-    if (user) {
-        router.push("/dashboard")
-        return null
-    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -38,11 +34,21 @@ export default function LoginPage() {
 
         setLoading(true)
         try {
-            await signIn(formData.email, formData.password)
+            const result = await authClient.signIn.email({
+                email: formData.email,
+                password:formData.password,
+                callbackURL
+            })
+            if (!result){
+                throw new Error("Login failed")
+            }
+            if (result.error) {
+                throw new Error(result.error.message)
+            }
             toast.success("Welcome back!")
-            router.push("/dashboard")
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || "Invalid email or password")
+        } catch (error) {
+            const errMsg = error instanceof Error ? error?.message : "Invalid email or password";
+            toast.error(errMsg)
         } finally {
             setLoading(false)
         }
@@ -87,14 +93,29 @@ export default function LoginPage() {
                                     Forgot password?
                                 </Link>
                             </div>
-                            <Input
-                                id="password"
-                                type="password"
-                                placeholder="Enter your password"
-                                value={formData.password}
-                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                required
-                            />
+                            <div className="relative">
+                                <Input
+                                    id="password"
+                                    type={showPassword ? "text" : "password"}
+                                    placeholder="Enter your password"
+                                    value={formData.password}
+                                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                    required
+                                    className="pr-10"
+                                />
+                                <button
+                                    type="button"
+                                    aria-label={showPassword ? "Hide password" : "Show password"}
+                                    onClick={() => setShowPassword((s) => !s)}
+                                    className="absolute inset-y-0 right-2 flex items-center text-muted-foreground"
+                                >
+                                    {showPassword ? (
+                                        <EyeOff className="size-4" />
+                                    ) : (
+                                        <Eye className="size-4" />
+                                    )}
+                                </button>
+                            </div>
                         </div>
 
                         <Button 

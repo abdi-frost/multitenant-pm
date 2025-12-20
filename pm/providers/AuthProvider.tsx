@@ -1,75 +1,101 @@
 'use client'
-import { AUTH_API } from "@/api/constants";
 import { Spinner } from "@/components/ui/spinner";
-import { coreApiClient } from "@/lib/api.client";
-import { User } from "@/types";
-import { AuthContextType } from "@/types/auth";
-import { useRouter } from "next/navigation";
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+    AuthContextType,
+    LoginCredentials,
+    LoginResponse,
+    LogoutResponse,
+    SessionResponse
+} from "@/types/auth";
+import { authClient } from "@/lib/auth";
+import { createContext, useContext, useEffect, useRef } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { UserType } from "@/types";
+import { URLS } from "@/config/urls";
+
+const LOGIN_PATH = "/auth/login";
+const protectedRoutes = ["/app", "/dashboard"];
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-
-    const [user, setUser] = useState<User | null>(null);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [fetchingSession, setFetchingSession] = useState<boolean>(false);
+    const { data: sessionData, isPending } = authClient.useSession();
     const router = useRouter();
+    const pathname = usePathname();
 
-    const fetchSession = async () => {
-        setLoading(true);
-        setFetchingSession(true);
-        try {
-            const session = await coreApiClient.get(AUTH_API.SESSION);
-            const sessionUser = session.data.user;
+    const user = sessionData?.user || null;
+    const session = sessionData?.session || null;
+    const isAuth = !!user && !!session
+    const loading = isPending;
 
-            setUser(sessionUser);
-
-        } catch (error) {
-            setUser(null);
-            console.error("Failed to fetch session:", error);
-        } finally {
-            setLoading(false);
-            setFetchingSession(false);
-        }
-    }
+    const lastRedirect = useRef<string | null>(null);
+    const searchParams = useSearchParams();
 
     useEffect(() => {
-        fetchSession();
-    }, []);
+        if (loading) return;
+        if (typeof pathname !== "string") return;
 
-    const signIn = async (email: string, password: string) => {
-        setLoading(true);
-        try {
-            const response = await coreApiClient.post(AUTH_API.SIGNIN, { email, password });
-            const signedInUser = response.data.user;
+        const normalizedPath = pathname || "/";
+        const isLoginPage = normalizedPath === LOGIN_PATH;
+        const isProtected = protectedRoutes.some(
+            (route) => normalizedPath === route || normalizedPath.startsWith(`${route}/`)
+        );
 
-            setUser(signedInUser);
+        // Avoid duplicate redirects
+        if (lastRedirect.current === normalizedPath) return;
 
-        } catch (error) {
-            setUser(null);
-            console.error("Sign-in failed:", error);
-            throw error;
-        } finally {
-            setLoading(false);
+        // Helper to navigate, using full-nav for external URLs
+        const navigateTo = (dest: string) => {
+            if (dest.startsWith("http://") || dest.startsWith("https://")) {
+                window.location.href = dest;
+            } else {
+                router.replace(dest);
+            }
+            lastRedirect.current = normalizedPath;
+        };
+
+        // If unauthenticated and on a protected route, send to login with return path
+        if (!isAuth && isProtected) {
+            const url = new URL(LOGIN_PATH, window.location.href);
+            url.searchParams.set("redirect", normalizedPath);
+            navigateTo(url.pathname + url.search);
+            return;
         }
-    }
 
-    const signOut = async () => {
-        try {
-            await coreApiClient.post(AUTH_API.SIGN_OUT);
-            setUser(null);
-            router.push("/login");
-        } catch (error) {
-            console.error("Sign out error:", error);
+        // If authenticated but on login page, forward to intended destination
+        if (isAuth) {
+
+            console.log({type: user.userType, role: user.role});
+
+            const redirectParam = searchParams?.get("redirect");
+            if (redirectParam && redirectParam !== normalizedPath) {
+                navigateTo(redirectParam);
+                return;
+            }
+
+            // Fallback by user type
+            const dest = user?.userType === UserType.ADMIN ? URLS.ADMIN_APP : "/app";
+            if (dest && dest !== normalizedPath) {
+                navigateTo(dest);
+            }
         }
+    }, [isAuth, user?.userType, loading, pathname, router, searchParams]);
+
+    const login = async (credentials: LoginCredentials): Promise<LoginResponse> => {
+        return await authClient.signIn.email(credentials);
     };
 
-    const refetch = async () => {
-        await fetchSession();
+    const logout = async (): Promise<LogoutResponse> => {
+        const res = await authClient.signOut();
+        router.push(LOGIN_PATH);
+        return res;
+    };
+
+    const getSession = async (): Promise<SessionResponse> => {
+        return await authClient.getSession();
     }
 
-    if (fetchingSession) {
+    if (loading) {
         return (
             <div className="h-screen flex items-center justify-center">
                 <Spinner />
@@ -78,7 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     return (
-        <AuthContext.Provider value={{ user, loading, signIn, signOut, refetch }}>
+        <AuthContext.Provider value={{ user, loading, login, logout, getSession }}>
             {children}
         </AuthContext.Provider>
     );
