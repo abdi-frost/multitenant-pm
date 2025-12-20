@@ -77,6 +77,13 @@ export async function generateTaskSuggestions(projectContext: string) {
     throw new Error('AI service unavailable. Please try again later.');
   }
 }
+
+// Helper function to parse AI response into structured task suggestions
+function parseTaskSuggestions(content: any): TaskSuggestion[] {
+  // Implementation: Parse the AI response and extract task details
+  // Returns: Array of { title, description, estimatedDuration, priority }
+  // This is a placeholder - actual implementation depends on AI response format
+}
 ```
 
 ---
@@ -146,6 +153,20 @@ export async function semanticSearch(query: string, tenantId: string) {
     return await fallbackKeywordSearch(query, tenantId);
   }
 }
+
+// Helper function to search similar content using vector similarity
+async function searchSimilarContent(embedding: number[], tenantId: string) {
+  // Implementation: Query PostgreSQL with pgvector for similar embeddings
+  // SELECT * FROM tasks WHERE tenantId = $1 ORDER BY embedding <=> $2 LIMIT 10
+  // This is a placeholder - actual implementation requires database integration
+}
+
+// Helper function for traditional keyword search fallback
+async function fallbackKeywordSearch(query: string, tenantId: string) {
+  // Implementation: Traditional full-text search as fallback
+  // SELECT * FROM tasks WHERE tenantId = $1 AND title ILIKE $2
+  // This is a placeholder - actual implementation requires database integration
+}
 ```
 
 **Database Setup**:
@@ -198,26 +219,39 @@ Automatically transcribe meeting notes, generate summaries, and extract action i
 **Implementation Approach**:
 ```typescript
 // Example: lib/ai/meeting-analyzer.ts
+import OpenAI from 'openai';
+
 export async function analyzeMeeting(transcript: string) {
   // Validate API key
-  const apiKey = process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    throw new Error('AI API key is not configured');
+    throw new Error('OPENAI_API_KEY is not configured');
   }
   
   try {
-    const prompt = `
-      Analyze this meeting transcript and provide:
-      1. A brief summary (2-3 sentences)
-      2. Key decisions made
-      3. Action items in format: [Person] - [Action] - [Due Date]
-      4. Blockers or risks mentioned
-      
-      Transcript: ${transcript}
-    `;
+    const openai = new OpenAI({ apiKey });
     
-    const response = await callLLM(prompt);
-    return parseStructuredResponse(response);
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{
+        role: "system",
+        content: "You are a meeting analysis assistant. Extract key information from meeting transcripts."
+      }, {
+        role: "user",
+        content: `
+          Analyze this meeting transcript and provide:
+          1. A brief summary (2-3 sentences)
+          2. Key decisions made
+          3. Action items in format: [Person] - [Action] - [Due Date]
+          4. Blockers or risks mentioned
+          
+          Transcript: ${transcript}
+        `
+      }],
+      response_format: { type: "json_object" }
+    });
+    
+    return JSON.parse(response.choices[0].message.content || '{}');
   } catch (error) {
     console.error('Meeting analysis failed:', error);
     throw new Error('Unable to analyze meeting. Please try again later.');
@@ -282,6 +316,8 @@ Allow users to create tasks using natural language. "Remind John to fix the logi
 
 **Implementation Approach**:
 ```typescript
+import OpenAI from 'openai';
+
 export async function parseTaskFromNL(input: string, tenantId: string) {
   // Validate API key
   const apiKey = process.env.OPENAI_API_KEY;
@@ -290,23 +326,40 @@ export async function parseTaskFromNL(input: string, tenantId: string) {
   }
   
   try {
-    const prompt = `
-      Extract task details from: "${input}"
-      Return JSON: {
-        title: string,
-        description: string,
-        assignee: string (or null),
-        dueDate: ISO date (or null),
-        priority: "low" | "medium" | "high"
-      }
-    `;
+    const openai = new OpenAI({ apiKey });
     
-    const response = await callLLM(prompt, { response_format: "json" });
-    return JSON.parse(response);
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{
+        role: "system",
+        content: "You are a task parser. Extract structured task information from natural language."
+      }, {
+        role: "user",
+        content: `
+          Extract task details from: "${input}"
+          Return JSON: {
+            title: string,
+            description: string,
+            assignee: string (or null),
+            dueDate: ISO date (or null),
+            priority: "low" | "medium" | "high"
+          }
+        `
+      }],
+      response_format: { type: "json_object" }
+    });
+    
+    return JSON.parse(response.choices[0].message.content || '{}');
   } catch (error) {
     console.error('Failed to parse natural language task:', error);
     // Return basic task structure on failure
-    return { title: input, description: '', assignee: null, dueDate: null, priority: 'medium' };
+    return { 
+      title: input, 
+      description: '', 
+      assignee: null, 
+      dueDate: null, 
+      priority: 'medium' 
+    };
   }
 }
 ```
