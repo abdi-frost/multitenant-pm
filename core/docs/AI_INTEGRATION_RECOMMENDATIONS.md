@@ -53,18 +53,29 @@ Automatically suggest task breakdowns, estimate completion times, and recommend 
 import Anthropic from '@anthropic-ai/sdk';
 
 export async function generateTaskSuggestions(projectContext: string) {
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  // Validate API key
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new Error('ANTHROPIC_API_KEY is not configured');
+  }
   
-  const message = await client.messages.create({
-    model: "claude-3-haiku-20240307",
-    max_tokens: 1024,
-    messages: [{
-      role: "user",
-      content: `Generate 5-7 task suggestions for: ${projectContext}`
-    }]
-  });
-  
-  return parseTaskSuggestions(message.content);
+  try {
+    const client = new Anthropic({ apiKey });
+    
+    const message = await client.messages.create({
+      model: "claude-3-haiku-20240307",
+      max_tokens: 1024,
+      messages: [{
+        role: "user",
+        content: `Generate 5-7 task suggestions for: ${projectContext}`
+      }]
+    });
+    
+    return parseTaskSuggestions(message.content);
+  } catch (error) {
+    console.error('Failed to generate task suggestions:', error);
+    throw new Error('AI service unavailable. Please try again later.');
+  }
 }
 ```
 
@@ -112,16 +123,28 @@ Enable natural language search across projects, tasks, documents, and comments u
 import OpenAI from 'openai';
 
 export async function semanticSearch(query: string, tenantId: string) {
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  // Validate API key
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error('OPENAI_API_KEY is not configured');
+  }
   
-  // Generate query embedding
-  const embedding = await openai.embeddings.create({
-    model: "text-embedding-3-small",
-    input: query,
-  });
-  
-  // Search similar embeddings in database
-  return await searchSimilarContent(embedding.data[0].embedding, tenantId);
+  try {
+    const openai = new OpenAI({ apiKey });
+    
+    // Generate query embedding
+    const embedding = await openai.embeddings.create({
+      model: "text-embedding-3-small",
+      input: query,
+    });
+    
+    // Search similar embeddings in database
+    return await searchSimilarContent(embedding.data[0].embedding, tenantId);
+  } catch (error) {
+    console.error('Semantic search failed:', error);
+    // Fallback to traditional search
+    return await fallbackKeywordSearch(query, tenantId);
+  }
 }
 ```
 
@@ -176,18 +199,29 @@ Automatically transcribe meeting notes, generate summaries, and extract action i
 ```typescript
 // Example: lib/ai/meeting-analyzer.ts
 export async function analyzeMeeting(transcript: string) {
-  const prompt = `
-    Analyze this meeting transcript and provide:
-    1. A brief summary (2-3 sentences)
-    2. Key decisions made
-    3. Action items in format: [Person] - [Action] - [Due Date]
-    4. Blockers or risks mentioned
-    
-    Transcript: ${transcript}
-  `;
+  // Validate API key
+  const apiKey = process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new Error('AI API key is not configured');
+  }
   
-  const response = await callLLM(prompt);
-  return parseStructuredResponse(response);
+  try {
+    const prompt = `
+      Analyze this meeting transcript and provide:
+      1. A brief summary (2-3 sentences)
+      2. Key decisions made
+      3. Action items in format: [Person] - [Action] - [Due Date]
+      4. Blockers or risks mentioned
+      
+      Transcript: ${transcript}
+    `;
+    
+    const response = await callLLM(prompt);
+    return parseStructuredResponse(response);
+  } catch (error) {
+    console.error('Meeting analysis failed:', error);
+    throw new Error('Unable to analyze meeting. Please try again later.');
+  }
 }
 ```
 
@@ -249,19 +283,31 @@ Allow users to create tasks using natural language. "Remind John to fix the logi
 **Implementation Approach**:
 ```typescript
 export async function parseTaskFromNL(input: string, tenantId: string) {
-  const prompt = `
-    Extract task details from: "${input}"
-    Return JSON: {
-      title: string,
-      description: string,
-      assignee: string (or null),
-      dueDate: ISO date (or null),
-      priority: "low" | "medium" | "high"
-    }
-  `;
+  // Validate API key
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error('OPENAI_API_KEY is not configured');
+  }
   
-  const response = await callLLM(prompt, { response_format: "json" });
-  return JSON.parse(response);
+  try {
+    const prompt = `
+      Extract task details from: "${input}"
+      Return JSON: {
+        title: string,
+        description: string,
+        assignee: string (or null),
+        dueDate: ISO date (or null),
+        priority: "low" | "medium" | "high"
+      }
+    `;
+    
+    const response = await callLLM(prompt, { response_format: "json" });
+    return JSON.parse(response);
+  } catch (error) {
+    console.error('Failed to parse natural language task:', error);
+    // Return basic task structure on failure
+    return { title: input, description: '', assignee: null, dueDate: null, priority: 'medium' };
+  }
 }
 ```
 
@@ -338,14 +384,26 @@ Analyze team communication sentiment to identify potential conflicts, low morale
 import { HfInference } from '@huggingface/inference';
 
 export async function analyzeSentiment(text: string) {
-  const hf = new HfInference(process.env.HF_API_KEY);
+  // Validate API key
+  const apiKey = process.env.HF_API_KEY;
+  if (!apiKey) {
+    console.warn('HF_API_KEY not configured, sentiment analysis disabled');
+    return 'NEUTRAL'; // Graceful degradation
+  }
   
-  const result = await hf.textClassification({
-    model: 'distilbert-base-uncased-finetuned-sst-2-english',
-    inputs: text
-  });
-  
-  return result[0].label; // POSITIVE, NEGATIVE, NEUTRAL
+  try {
+    const hf = new HfInference(apiKey);
+    
+    const result = await hf.textClassification({
+      model: 'distilbert-base-uncased-finetuned-sst-2-english',
+      inputs: text
+    });
+    
+    return result[0].label; // POSITIVE, NEGATIVE, NEUTRAL
+  } catch (error) {
+    console.error('Sentiment analysis failed:', error);
+    return 'NEUTRAL'; // Graceful degradation
+  }
 }
 ```
 
@@ -525,11 +583,36 @@ export { parseTaskFromNL } from './nl-task-parser';
 ```typescript
 // app/api/ai/task-suggestions/route.ts
 import { generateTaskSuggestions } from '@/lib/ai';
+import { requireAuth } from '@/lib/api-helpers';
 
 export async function POST(req: Request) {
-  const { projectContext } = await req.json();
-  const suggestions = await generateTaskSuggestions(projectContext);
-  return Response.json({ suggestions });
+  try {
+    // Require authentication
+    const user = await requireAuth();
+    
+    const { projectContext } = await req.json();
+    
+    // Validate input
+    if (!projectContext || projectContext.trim().length === 0) {
+      return Response.json(
+        { error: 'Project context is required' },
+        { status: 400 }
+      );
+    }
+    
+    const suggestions = await generateTaskSuggestions(projectContext);
+    
+    return Response.json({ 
+      success: true, 
+      data: suggestions 
+    });
+  } catch (error) {
+    console.error('Task suggestion API error:', error);
+    return Response.json(
+      { error: 'Failed to generate task suggestions' },
+      { status: 500 }
+    );
+  }
 }
 ```
 
