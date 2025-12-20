@@ -36,7 +36,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (typeof pathname !== "string") return;
 
         const normalizedPath = pathname || "/";
-        const isLoginPage = normalizedPath === LOGIN_PATH;
         const isProtected = protectedRoutes.some(
             (route) => normalizedPath === route || normalizedPath.startsWith(`${route}/`)
         );
