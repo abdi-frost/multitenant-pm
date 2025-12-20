@@ -63,9 +63,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // If authenticated but on login page, forward to intended destination
         if (isAuth) {
-
-            console.log({type: user.userType, role: user.role});
-
             const redirectParam = searchParams?.get("redirect");
             if (redirectParam && redirectParam !== normalizedPath) {
                 navigateTo(redirectParam);
