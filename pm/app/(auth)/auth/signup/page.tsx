@@ -40,7 +40,7 @@ export default function TenantSignupPage() {
             },
             organization: {
                 name: '',
-                tenantId: '',
+                tenantId: '', // Will be populated from tenant.id on submit
                 legalName: '',
                 country: '',
                 phone: '',

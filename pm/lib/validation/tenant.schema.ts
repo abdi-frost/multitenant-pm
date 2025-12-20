@@ -1,7 +1,10 @@
 import { z } from 'zod'
 
-// Helper for URL validation that allows empty strings
-const optionalUrl = z.string().url().optional().nullable().or(z.literal(''))
+// Helper for URL validation that allows empty strings or null
+const optionalUrl = z.union([
+    z.string().url(),
+    z.literal(''),
+]).optional().nullable()
 
 export const tenantRegistrationSchema = z.object({
     tenant: z.object({
