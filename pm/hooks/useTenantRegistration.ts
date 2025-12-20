@@ -2,10 +2,27 @@ import { useMutation } from '@tanstack/react-query'
 import { registerTenant } from '@/api/tenant'
 import { TenantRegistrationDTO } from '@/types/tenant'
 import { toast } from 'sonner'
+import { AxiosError } from 'axios'
 
 interface UseRegisterTenantOptions {
     onSuccess?: () => void
     onError?: (error: unknown) => void
+}
+
+interface ApiErrorResponse {
+    error?: string
+    message?: string
+}
+
+function getErrorMessage(error: unknown): string {
+    if (error instanceof AxiosError) {
+        const data = error.response?.data as ApiErrorResponse | undefined
+        return data?.error || data?.message || error.message
+    }
+    if (error instanceof Error) {
+        return error.message
+    }
+    return 'An unexpected error occurred.'
 }
 
 export function useRegisterTenant(options?: UseRegisterTenantOptions) {
@@ -24,8 +41,7 @@ export function useRegisterTenant(options?: UseRegisterTenantOptions) {
         },
         onError: (error: unknown) => {
             console.error('❌ Registration error:', error)
-            const err = error as { response?: { data?: { error?: string, message?: string } } }
-            const errorMessage = err?.response?.data?.error || err?.response?.data?.message || 'An unexpected error occurred.'
+            const errorMessage = getErrorMessage(error)
             console.error('❌ Error message:', errorMessage)
             toast.error('Registration failed', {
                 description: errorMessage,

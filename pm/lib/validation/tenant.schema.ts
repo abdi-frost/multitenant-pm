@@ -1,5 +1,8 @@
 import { z } from 'zod'
 
+// Helper for URL validation that allows empty strings
+const optionalUrl = z.string().url().optional().nullable().or(z.literal(''))
+
 export const tenantRegistrationSchema = z.object({
     tenant: z.object({
         id: z.string()
@@ -17,8 +20,8 @@ export const tenantRegistrationSchema = z.object({
         legalName: z.string().max(100).optional().nullable(),
         country: z.string().optional().nullable(),
         phone: z.string().max(20).optional().nullable(),
-        logoUrl: z.string().url().optional().nullable().or(z.literal('')),
-        website: z.string().url().optional().nullable().or(z.literal('')),
+        logoUrl: optionalUrl,
+        website: optionalUrl,
         description: z.string().max(500).optional().nullable(),
     }),
     user: z.object({

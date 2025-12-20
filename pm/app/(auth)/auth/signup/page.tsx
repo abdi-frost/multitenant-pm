@@ -54,7 +54,7 @@ export default function TenantSignupPage() {
             },
             onboardingRequest: {
                 businessType: '',
-                expectedUsers: 0,
+                expectedUsers: undefined,
                 description: '',
             },
         },
