@@ -35,6 +35,10 @@ export const auth = betterAuth({
         type: "string",
         input: false
       },
+      userType: {
+        type: "string",
+        input: false
+      },
       approved: {
         type: "boolean",
         input: false
