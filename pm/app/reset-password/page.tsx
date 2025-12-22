@@ -60,7 +60,7 @@ export default function ResetPasswordPage() {
                         >
                             Didn't receive? Try again
                         </Button>
-                        <Link href="/login">
+                        <Link href="/auth/login">
                             <Button variant="ghost" className="w-full">
                                 <ArrowLeft className="mr-2 size-4" />
                                 Back to Login
@@ -111,7 +111,7 @@ export default function ResetPasswordPage() {
                             )}
                         </Button>
 
-                        <Link href="/login">
+                        <Link href="/auth/login">
                             <Button variant="ghost" className="w-full">
                                 <ArrowLeft className="mr-2 size-4" />
                                 Back to Login
