@@ -14,7 +14,7 @@ import { UserType } from "@/types";
 import { URLS } from "@/config/urls";
 
 const LOGIN_PATH = "/auth/login";
-const protectedRoutes = ["/app", "/dashboard"];
+const protectedRoutes = ["/app", "/dashboard", "/team"];
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 

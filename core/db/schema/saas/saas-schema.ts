@@ -1,7 +1,7 @@
 import { jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { users } from "../auth/auth-schema";
-import { TenantStatus, UserRole, UserStatus } from "@/types/entityEnums";
+import { EmployeeRole, InvitationStatus, TenantStatus, UserRole, UserStatus } from "@/types/entityEnums";
 import { systemFields } from "../core/sysytem-schema";
 
 export const tenants = pgTable("tenants", {
@@ -28,13 +28,34 @@ export const employees = pgTable("employees", {
     id: uuid("id").defaultRandom().primaryKey(),
     tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
     userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-    role: text("role").notNull().default(UserRole.MEMBER),
+    // Note: this field stores tenant-employee permission level (STAFF/MANAGER/ADMIN).
+    // `users.role` stores platform-level role (e.g. TENANT_ADMIN).
+    role: text("role").notNull().default(EmployeeRole.STAFF),
     status: text("status").notNull().default(UserStatus.INVITED),
     joinedAt: timestamp("joined_at").defaultNow().notNull(),
     ...systemFields
 }, (t) => {
     return {
         uniqueEmployee: uniqueIndex("unique_employee").on(t.tenantId, t.userId),
+    };
+});
+
+export const invitations = pgTable("invitations", {
+    id: uuid("id").defaultRandom().primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+    firstName: text("first_name"),
+    lastName: text("last_name"),
+    role: text("role").notNull().default(EmployeeRole.STAFF),
+    status: text("status").notNull().default(InvitationStatus.PENDING),
+    tokenHash: text("token_hash").notNull().unique(),
+    expiresAt: timestamp("expires_at").notNull(),
+    acceptedAt: timestamp("accepted_at"),
+    invitedByUserId: text("invited_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    ...systemFields
+}, (t) => {
+    return {
+        uniqueInvitationEmailPerTenant: uniqueIndex("unique_invitation_email_per_tenant").on(t.tenantId, t.email),
     };
 });
 
@@ -59,6 +80,7 @@ export const tenantsRelations = relations(tenants, ({ one, many }) => ({
         references: [organizations.tenantId]
     }),
     employees: many(employees),
+    invitations: many(invitations),
     owner: one(users, {
         fields: [tenants.ownerId],
         references: [users.id]
@@ -83,6 +105,17 @@ export const employeesRelations = relations(employees, ({ one }) => ({
     }),
     user: one(users, {
         fields: [employees.userId],
+        references: [users.id]
+    })
+}));
+
+export const invitationsRelations = relations(invitations, ({ one }) => ({
+    tenant: one(tenants, {
+        fields: [invitations.tenantId],
+        references: [tenants.id]
+    }),
+    invitedBy: one(users, {
+        fields: [invitations.invitedByUserId],
         references: [users.id]
     })
 }));
