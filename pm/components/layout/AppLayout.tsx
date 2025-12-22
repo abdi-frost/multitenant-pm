@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
-import { LayoutDashboard, Moon, Sun, UserRound } from "lucide-react";
+import { CircuitBoard, LayoutDashboard, Moon, Sun, UserRound, UsersRound } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/providers/AuthProvider";
@@ -22,9 +22,14 @@ const NAV_ITEMS: NavItem[] = [
 		icon: <LayoutDashboard className="size-4" />,
 	},
 	{
+		href: "/team",
+		label: "Team",
+		icon: <UsersRound className="size-4" />,
+	},
+	{
 		href: "/app",
 		label: "Workspace",
-		icon: <UserRound className="size-4" />,
+		icon: <CircuitBoard className="size-4" />,
 	},
 ];
 
@@ -94,7 +99,7 @@ function MobileDock() {
 	return (
 		<div className="fixed inset-x-0 bottom-4 z-40 mx-auto w-full px-4 sm:hidden">
 			<div className="mx-auto max-w-sm rounded-2xl border bg-card/70 p-1 shadow-lg backdrop-blur">
-				<div className="grid grid-cols-2 gap-1">
+				<div className="grid grid-cols-3 gap-1">
 					{NAV_ITEMS.map((item) => {
 						const active = isActivePath(pathname, item.href);
 						return (
