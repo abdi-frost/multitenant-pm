@@ -1,6 +1,6 @@
 import { db } from '@/db';
 import { ResponseFactory } from "@/types/response";
-import { AdminCreateTenantDTO, TenantStatus, UserRole, UserStatus, UserType } from "@/types";
+import { AdminCreateTenantDTO, EmployeeRole, TenantStatus, UserRole, UserStatus, UserType } from "@/types";
 import { account, employees, organizations, session, tenants, users, verification } from '../schema';
 import { auth } from '@/lib/auth';
 import { and, count, desc, eq, ilike, isNotNull, or, sql } from 'drizzle-orm';
@@ -98,7 +98,7 @@ export class AdminTenantRepository {
                 const newEmployee = await tx.insert(employees).values({
                     tenantId: tenant.id,
                     userId: tenantOwnerId,
-                    role: UserRole.TENANT_ADMIN,
+                    role: EmployeeRole.ADMIN,
                     status: UserStatus.ACTIVE,
                     joinedAt: new Date()
                 }).returning();

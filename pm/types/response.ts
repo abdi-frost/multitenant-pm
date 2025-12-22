@@ -18,4 +18,5 @@ export interface ListResponse<T> {
     error?: string;
     message?: string;
     success: boolean;
+    summary?: Record<string, unknown>;
 }
