@@ -14,5 +14,5 @@ const getEnvOrFail = (name: string, devFallback: string): string => {
 export const URLS = {
     ADMIN_APP: getEnvOrFail('NEXT_PUBLIC_ADMIN_URL', 'http://localhost:3002'),
     PM_APP: getEnvOrFail('NEXT_PUBLIC_PM_URL', 'http://localhost:3001'),
-    CORE_API: getEnvOrFail('NEXT_PUBLIC_CORE_API_URL', 'http://localhost:3000'),
+    CORE_API: getEnvOrFail('NEXT_PUBLIC_CORE_URL', 'http://localhost:3000'),
 }
