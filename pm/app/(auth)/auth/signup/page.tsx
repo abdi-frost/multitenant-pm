@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Building2, User, Shield, CheckCircle2, Zap, Lock, TrendingUp } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Spinner } from '@/components/ui/spinner'
 
 export default function TenantSignupPage() {
     const router = useRouter()
@@ -369,7 +370,7 @@ export default function TenantSignupPage() {
                                 </Tabs>
 
                                 <Card>
-                                    <CardFooter className="flex flex-col sm:flex-row justify-between gap-3 pt-6">
+                                    <CardFooter className="flex flex-col md:flex-row justify-between gap-3 pt-6">
                                         <Button
                                             type="button"
                                             variant="outline"
@@ -400,8 +401,8 @@ export default function TenantSignupPage() {
                                                 <Button type="submit" disabled={registerMutation.isPending}>
                                                     {registerMutation.isPending ? (
                                                         <>
-                                                            <span className="mr-2">Registering...</span>
-                                                            <span className="animate-spin">⏳</span>
+                                                            <Spinner className="mr-2" />
+                                                            <span>Registering...</span>
                                                         </>
                                                     ) : (
                                                         'Register Tenant'

@@ -193,7 +193,7 @@ export default function LoginPage() {
                                 <p className="text-sm text-muted-foreground mb-3">
                                     New to our platform?
                                 </p>
-                                <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                                <div className="flex gap-2 justify-center">
                                     <Button 
                                         variant="outline" 
                                         asChild

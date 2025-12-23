@@ -5,6 +5,22 @@ import * as SeparatorPrimitive from "@radix-ui/react-separator"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * Separator component for visual separation of content
+ * 
+ * @component
+ * @example
+ * // Horizontal separator (default)
+ * <Separator />
+ * 
+ * @example
+ * // Vertical separator
+ * <Separator orientation="vertical" />
+ * 
+ * @example
+ * // Custom styling
+ * <Separator className="my-4 bg-primary" />
+ */
 const Separator = React.forwardRef<
   React.ElementRef<typeof SeparatorPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof SeparatorPrimitive.Root>
