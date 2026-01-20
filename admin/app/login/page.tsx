@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { authClient } from "@/lib/auth";
 import { Switch } from "@/components/ui/switch";
+import { URLS } from "@/config/urls";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -18,7 +19,7 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(true);
 
   const redirect = useSearchParams().get("redirect") || "dashboard";
-  const callbackURL = `${process.env.NEXT_PUBLIC_ADMIN_APP_URL}/${redirect}`;
+  const callbackURL = `${URLS.ADMIN_APP}/${redirect}`;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
